@@ -1,6 +1,6 @@
 import pandas as pd
 import numpy as np
-from pandas.api.types import is_string_dtype, is_integer_dtype, is_float_dtype
+from pandas.api.types import is_object_dtype, is_integer_dtype, is_float_dtype
 from pandas.core.dtypes.common import is_datetime64_any_dtype
 from sklearn.preprocessing import StandardScaler, LabelEncoder, MinMaxScaler
 
@@ -38,13 +38,13 @@ class RemoveIDColumn:
         return df
 
     @classmethod
-    def remove_high_cardinality_columns(self, df, threshold=0.75):
+    def remove_high_cardinality_columns(cls, df, threshold=0.75):
         """
         Identifies and removes potential ID columns based on high cardinality.
 
         Parameters:
             - df: pandas DataFrame
-            - threshold: Threshold for considering a column as high cardinality (default: 0.9)
+            - threshold: Threshold for considering a column as high cardinality (default: 0.75)
 
         Returns:
             - df: pandas DataFrame with removed high cardinality columns
@@ -64,7 +64,7 @@ class RemoveIDColumn:
         return df
 
 
-class Convert_to_datetime:
+class ConvertToDatetime:
     """
     A class for converting object-type columns to datetime in a pandas DataFrame.
 
@@ -111,7 +111,7 @@ class MissingValues:
             - df: pandas DataFrame
 
         Returns:
-            - None
+            - columns containing nulls
         """
         null_info = df.isnull().sum()
         columns_with_nulls = null_info[null_info > 0]
@@ -138,13 +138,22 @@ class MissingValues:
             - df: pandas DataFrame with missing values handled
         """
         for col, method in fillNA_dict.items():
+            if not df[col].isnull().any():
+                continue
+            # Check if too many null values
+            null_percentage = df[col].isnull().mean() * 100
+            if null_percentage > 75:
+                print(f"Column '{col}' has too many null values ({null_percentage:.2f}%). Dropping the column.")
+                df.drop(columns=[col], inplace=True)
+                continue
             if method == 'auto':
-                if not df[col].isnull().any():
-                    continue
                 if is_float_dtype(df[col]):
                     df[col].fillna(df[col].median(), inplace=True)
-                elif is_string_dtype(df[col]) or is_integer_dtype(df[col]):
-                    df[col].fillna(df[col].mode()[0], inplace=True)
+                elif is_object_dtype(df[col]) or is_integer_dtype(df[col]):
+                    mode_values = df[col].mode()
+                    if not mode_values.empty:
+                        chosen_mode = mode_values.iloc[0].split()[0]
+                        df[col].fillna(chosen_mode, inplace=True)
                 elif is_datetime64_any_dtype(df[col]):
                     df[col], status = self.fill_datetime_na(df[col])
                     if status == "failed":
@@ -352,7 +361,7 @@ class DataNormalization:
         A class for normalizing numeric data in a pandas DataFrame.
 
         Methods:
-        - normalize_data(df, method='standard'): Normalizes numeric data based on the specified method.
+        - normalize_data(df, method): Normalizes numeric data based on the specified method either with standard scaler(auto) or Minmax scaler.
     """
 
     def normalize_data(self, df, method):
@@ -382,10 +391,19 @@ class EncodeCategorical:
         A class for encoding categorical columns in a pandas DataFrame.
 
         Methods:
-        - Encode(df, encoding_dict): Encodes categorical columns based on the specified encoding method.
+        - Encode(df, encoding_dict): Encodes categorical columns based on the specified encoding methods or auto encoded if not specified.
     """
 
     def categorical_columns(self, df):
+        """
+                Identify categorical columns in the DataFrame.
+
+                Parameters:
+                    - df: pandas DataFrame
+
+                Returns:
+                    - result_dict: a dictionary where keys are categorical column names, and values are set to 'auto'
+        """
         # Identify categorical columns
         categorical_columns = df.select_dtypes(include=['object']).columns
 
@@ -403,7 +421,7 @@ class EncodeCategorical:
 
         Parameters:
             - df: pandas DataFrame
-            - encoding_dict: a dictionary where keys are column names and values are encoding methods ("label" or "onehot")
+            - encoding_dict: a dictionary where keys are column names and values are encoding methods ("label" or "onehot" or auto)
 
         Returns:
             - df_encoded: pandas DataFrame with encoded categorical columns
@@ -428,7 +446,7 @@ class HandlingColinearity:
     """
     A class for handling co-linearity in numeric columns of a pandas DataFrame.
 
-    Methods:
+    functions:
         - detect_low_variance(df_numeric, var_threshold=0.1): Detects and informs about columns with low variance.
         - handle_low_variance(df, actions): Handles low variance based on user actions.
         - detect_colinearity(df): Detects and informs about colinearity between numeric variables.

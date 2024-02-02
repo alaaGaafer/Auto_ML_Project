@@ -7,11 +7,12 @@ class AutoClean:
     def clean_data(File_path, Is_clustering):
         # Read CSV file
         df = pd.read_csv(File_path)
+        print(df)
         df = df.reset_index(drop=True)
         df_copy = df.copy()
 
         # Convert to datetime
-        df_copy = AutoClean.convert_to_datetime(df_copy)
+        # df_copy = AutoClean.convert_to_datetime(df_copy)
 
         # removing Id column
         if not Is_clustering:
@@ -34,11 +35,13 @@ class AutoClean:
 
         # Normalize numerical columns
         method = 'auto'
-        df_copy = DataNormalization().normalize_data(df, method)
+        df_copy = DataNormalization().normalize_data(df_copy, method)
 
         # Encode categorical variables
-        encoding_dict = EncodeCategorical().categorical_columns(df)
+        encoding_dict = EncodeCategorical().categorical_columns(df_copy)
         df_copy = AutoClean.encode_categorical(df_copy, encoding_dict)
+
+        print(df_copy.columns)
 
         # Handle low variance columns, detect it and inform the user
         low_variance_columns = HandlingColinearity().detect_low_variance(df_copy)
@@ -51,25 +54,25 @@ class AutoClean:
 
         print(df_copy)
 
-
     @staticmethod
     def convert_to_datetime(df):
         print("info before", df.info())
-        df = Convert_to_datetime().convert(df)
+        df = ConvertToDatetime().convert(df)
         print("info after", df.info())
         return df
 
-# Taking input from user , will be taken from the front end later
+    # Taking input from user , will be taken from the front end later
     @staticmethod
     def get_fill_method_input(df, col_name):
         col_type = df.dtypes[col_name]
 
         if pd.api.types.is_numeric_dtype(col_type):  # Check if the column is numeric (int or float)
-            fill_method = input(f"Enter method for handling NaN in '{col_name}' (mean, median, mode, delete): ").lower()
-            valid_methods = ["mean", "median", "mode", "delete"]
+            fill_method = input(
+                f"Enter method for handling NaN in '{col_name}' (mean, median, mode, delete, auto): ").lower()
+            valid_methods = ["mean", "median", "mode", "delete", "auto"]
         elif pd.api.types.is_string_dtype(col_type):  # Check if the column is string
-            fill_method = input(f"Enter method for handling NaN in '{col_name}' (mode, delete): ").lower()
-            valid_methods = ["mode", "delete"]
+            fill_method = input(f"Enter method for handling NaN in '{col_name}' (mode, delete,auto): ").lower()
+            valid_methods = ["mode", "delete", "auto"]
         else:
             fill_method = "auto"  # For date columns, assign it as "auto"
             valid_methods = ["auto"]
@@ -135,6 +138,6 @@ class AutoClean:
 
 
 if __name__ == "__main__":
-    file_path = "data.csv"
+    # file_path = "data.csv"
     is_clustering = False
-    AutoClean.clean_data(file_path, is_clustering)
+    AutoClean.clean_data(r"C:\Users\Alaa\Downloads\titanic\train.csv", is_clustering)
