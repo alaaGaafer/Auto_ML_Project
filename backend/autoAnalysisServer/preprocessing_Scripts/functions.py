@@ -437,7 +437,7 @@ class EncodeCategorical:
 
             elif method == "onehot" or (method == "auto" and df[col].nunique() < 5):
                 # Use OneHotEncoder for one-hot encoding
-                df_encoded = pd.get_dummies(df_encoded, columns=[col])
+                df_encoded = pd.get_dummies(df_encoded, columns=[col], drop_first=True)
 
         return df_encoded
 
@@ -495,7 +495,7 @@ class HandlingColinearity:
         numeric_df = df.select_dtypes(include='number')
 
         # Build Correlation Matrix and choose the correlated variables
-        corr = round(df.corr(), 2)
+        corr = round(numeric_df.corr(), 2)
         high_corr_pairs = (corr.abs() > 0.5) & (corr != 1)
         high_corr_variables = corr[high_corr_pairs].stack()
         variables_cleaned = high_corr_variables.drop_duplicates()
