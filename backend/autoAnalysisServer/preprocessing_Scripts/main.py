@@ -4,35 +4,53 @@ from functions import *
 class AutoClean:
 
     @staticmethod
-    def clean_data(file_path):
+    def clean_data(File_path, Is_clustering):
         # Read CSV file
-        df = pd.read_csv(file_path)
+        df = pd.read_csv(File_path)
         df = df.reset_index(drop=True)
+        df_copy = df.copy()
 
         # Convert to datetime
-        df = AutoClean.convert_to_datetime(df)
-        # Handle missing values
-        df = AutoClean.handle_missing_values(df)
-        print(df.head(20))
-        # Handle duplicates
-        df = AutoClean.handle_duplicates(df)
+        df_copy = AutoClean.convert_to_datetime(df_copy)
 
-        # Detect and handle outliers
-        df = AutoClean.handle_outliers(df)
+        # removing Id column
+        if not Is_clustering:
+            df_copy = RemoveIDColumn.remove_id_column(df_copy)
+
+        # Handle missing values , next line will be a notification in front-end
+        columns_with_nulls = MissingValues().detect_nulls(df_copy)
+
+        # next line should be called from the front-end after entering the user choices
+        df_copy = AutoClean.handle_missing_values(df_copy, columns_with_nulls)
+        print(df_copy.head(20))
+
+        # Handle duplicates, notify the user
+        df_copy = AutoClean.handle_duplicates(df_copy)
+
+        # Detect outliers and inform the user
+        outlier_info = Outliers().detect_outliers(df)
+        # next line should be called from the front-end after entering the user choices
+        df_copy = AutoClean.handle_outliers(df_copy, outlier_info)
+
+        # Normalize numerical columns
+        method = 'auto'
+        df_copy = DataNormalization().normalize_data(df, method)
 
         # Encode categorical variables
-        encoding_dict = {"Gender": "onehot"}
-        df = AutoClean.encode_categorical(df, encoding_dict)
+        encoding_dict = EncodeCategorical().categorical_columns(df)
+        df_copy = AutoClean.encode_categorical(df_copy, encoding_dict)
 
-        # Handle low variance columns
-        low_variance_columns = HandlingColinearity().detect_low_variance(df)
+        # Handle low variance columns, detect it and inform the user
+        low_variance_columns = HandlingColinearity().detect_low_variance(df_copy)
         actions = {c: "auto" for c in low_variance_columns}
-        df = HandlingColinearity().handle_low_variance(df, actions)
+        # next line should be called from the front-end after entering the user choices
+        df_copy = HandlingColinearity().handle_low_variance(df_copy, actions)
 
-        # Detect and handle colinearity
-        df = HandlingColinearity().handling_colinearity(df)
+        # Detect and handle co-linearity
+        df_copy = HandlingColinearity().handling_colinearity(df_copy)
 
-        print(df)
+        print(df_copy)
+
 
     @staticmethod
     def convert_to_datetime(df):
@@ -41,6 +59,7 @@ class AutoClean:
         print("info after", df.info())
         return df
 
+# Taking input from user , will be taken from the front end later
     @staticmethod
     def get_fill_method_input(df, col_name):
         col_type = df.dtypes[col_name]
@@ -62,9 +81,8 @@ class AutoClean:
         return fill_method
 
     @staticmethod
-    def handle_missing_values(df):
+    def handle_missing_values(df, columns_with_nulls):
         print('nan before: ', df.isna().sum())
-        columns_with_nulls = MissingValues().detect_nulls(df)
         fillNA_dict = {}
 
         for col, null_count in columns_with_nulls.items():
@@ -84,6 +102,7 @@ class AutoClean:
         print('dub after: ', df.duplicated().sum())
         return df
 
+    # Taking input from user , will be taken from the front-end later
     @staticmethod
     def get_outliers_handling_input(outlier_info):
         methods_input = {}
@@ -104,16 +123,7 @@ class AutoClean:
         return methods_input
 
     @staticmethod
-    def handle_outliers(df):
-        outlier_info = Outliers().detect_outliers(df)
-
-        print("\nOutliers Information:")
-        for col, info in outlier_info.items():
-            print(f"Column: {col}")
-            print(f"Outlier Locations: {info['locations']}")
-            print(f"Message: {info['message']}")
-            print("\n")
-
+    def handle_outliers(df, outlier_info):
         methods_input = AutoClean.get_outliers_handling_input(outlier_info)
         df = Outliers().handle_outliers(df, methods_input)
         return df
@@ -126,4 +136,5 @@ class AutoClean:
 
 if __name__ == "__main__":
     file_path = "data.csv"
-    AutoClean.clean_data(file_path)
+    is_clustering = False
+    AutoClean.clean_data(file_path, is_clustering)

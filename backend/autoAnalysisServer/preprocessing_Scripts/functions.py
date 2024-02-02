@@ -2,7 +2,66 @@ import pandas as pd
 import numpy as np
 from pandas.api.types import is_string_dtype, is_integer_dtype, is_float_dtype
 from pandas.core.dtypes.common import is_datetime64_any_dtype
-from sklearn.preprocessing import StandardScaler, LabelEncoder
+from sklearn.preprocessing import StandardScaler, LabelEncoder, MinMaxScaler
+
+
+class RemoveIDColumn:
+    """
+    A class for automatically identifying and removing potential ID columns
+    based on either column names containing "id" or "ID" or high cardinality.
+
+    Methods:
+        - remove_id_column(df): Identifies and removes ID columns.
+    """
+
+    @classmethod
+    def remove_id_column(self, df):
+        """
+        Identifies and removes potential ID columns based on column names or high cardinality.
+
+        Parameters:
+            - df: pandas DataFrame
+
+        Returns:
+            - df: pandas DataFrame with removed ID columns
+        """
+
+        # Check for columns containing "id" or "ID"
+        id_columns = [col for col in df.columns if 'id' in col.lower()]
+
+        # Remove identified ID columns
+        if id_columns:
+            df = df.drop(columns=id_columns)
+            print(f"Removed ID column(s): {', '.join(id_columns)}")
+        df = self.remove_high_cardinality_columns(df)
+
+        return df
+
+    @classmethod
+    def remove_high_cardinality_columns(self, df, threshold=0.75):
+        """
+        Identifies and removes potential ID columns based on high cardinality.
+
+        Parameters:
+            - df: pandas DataFrame
+            - threshold: Threshold for considering a column as high cardinality (default: 0.9)
+
+        Returns:
+            - df: pandas DataFrame with removed high cardinality columns
+        """
+
+        # Select only categorical columns
+        categorical_columns = df.select_dtypes(include='object').columns
+
+        for col in categorical_columns:
+            unique_ratio = df[col].nunique() / len(df)
+
+            # If the ratio is above the threshold, consider it for removal
+            if unique_ratio > threshold:
+                df = df.drop(columns=col)
+                print(f"Removed high cardinality column: {col}")
+
+        return df
 
 
 class Convert_to_datetime:
@@ -43,6 +102,7 @@ class MissingValues:
         - fill_datetime_na(series): Fills missing values in a datetime series with sequential dates if it is sequential.
     """
 
+    # detection will appear as a notification to the user
     def detect_nulls(self, df):
         """
         Detects null values in each column and informs the user.
@@ -96,9 +156,9 @@ class MissingValues:
                 df[col].fillna(df[col].mode()[0], inplace=True)
             elif method == 'mean':
                 if is_float_dtype(df[col]) or is_integer_dtype(df[col]):
-                    df[col].fillna(df[col].mean()[0], inplace=True)
+                    df[col].fillna(df[col].mean(), inplace=True)
             elif method == 'delete':
-                df.dropna(subset = [col], inplace=True)
+                df.dropna(subset=[col], inplace=True)
         return df
 
     def fill_datetime_na(self, series):
@@ -116,12 +176,12 @@ class MissingValues:
                 The status of the filling operation, either 'success' or 'failed'.
         """
         series_copy = series.copy()
-        print("Nan locations: ", series_copy.index[series_copy.isnull()])
+        # print("Nan locations: ", series_copy.index[series_copy.isnull()])
         status = "failed"
         old_index = series_copy.index
         series_copy = series_copy.reindex(range(old_index.min(), old_index.max() + 1))
         added_indices = series_copy.index.difference(old_index).tolist()
-        print("added_indices",added_indices)
+        # print("added_indices", added_indices)
 
         if series_copy.isnull().any():
             max_sequential_non_nulls = 4
@@ -151,12 +211,14 @@ class MissingValues:
                     if gap == prev_gap:
                         c += 1
 
-                dynamic_pattern = (series_copy[start_index + 1] - series_copy[start_index]).total_seconds() / (60 * 60 * 24)
+                dynamic_pattern = (series_copy[start_index + 1] - series_copy[start_index]).total_seconds() / (
+                            60 * 60 * 24)
 
                 # If the gaps are consistent, fill NaN values using the dynamic pattern
                 if c == (max_sequential_non_nulls - 2):
-                    dynamic_pattern = (series_copy[start_index + 1] - series_copy[start_index]).total_seconds() / (60 * 60 * 24)
-                    print("Gap Pattern = ", dynamic_pattern)
+                    dynamic_pattern = (series_copy[start_index + 1] - series_copy[start_index]).total_seconds() / (
+                                60 * 60 * 24)
+                    # print("Gap Pattern = ", dynamic_pattern)
 
                     # Fill NaN values before the sequence
                     for i in range(start_index - 1, -1, -1):
@@ -232,14 +294,19 @@ class Outliers:
             if outliers_mask.any():
                 outlier_info[col] = {
                     'locations': df.index[outliers_mask].tolist(),
-                    'message': 'Extreme outliers detected. Consider handling them.'
+                    'status': 'Extreme'
                 }
             elif np.any((z_scores > 1) & (z_scores <= threshold)):
                 outlier_info[col] = {
                     'locations': df.index[z_scores > 1].tolist(),
-                    'message': 'Mild outliers detected. Consider handling them.'
+                    'status': 'Mild'
                 }
-
+        print("\nOutliers Information:")
+        for col, info in outlier_info.items():
+            print(f"Column: {col}")
+            print(f"Outlier Locations: {info['locations']}")
+            print(f"status: {info['status']}")
+            print("\n")
 
         return outlier_info
 
@@ -288,7 +355,7 @@ class DataNormalization:
         - normalize_data(df, method='standard'): Normalizes numeric data based on the specified method.
     """
 
-    def normalize_data(self, df, method='standard'):
+    def normalize_data(self, df, method):
         """
         Normalize numeric data in the DataFrame.
 
@@ -299,8 +366,12 @@ class DataNormalization:
         Returns:
             - df: pandas DataFrame with normalized numeric data
         """
-        if method == 'standard':
+        if method == 'standard' or 'auto':
             scaler = StandardScaler()
+            df[df.select_dtypes(include=['float64']).columns] = scaler.fit_transform(
+                df.select_dtypes(include=['float64']))
+        elif method == 'MinMax':
+            scaler = MinMaxScaler()
             df[df.select_dtypes(include=['float64']).columns] = scaler.fit_transform(
                 df.select_dtypes(include=['float64']))
         return df
@@ -314,27 +385,39 @@ class EncodeCategorical:
         - Encode(df, encoding_dict): Encodes categorical columns based on the specified encoding method.
     """
 
+    def categorical_columns(self, df):
+        # Identify categorical columns
+        categorical_columns = df.select_dtypes(include=['object']).columns
+
+        # Create a dictionary to store the columns with value 'auto'
+        result_dict = {}
+
+        for col in categorical_columns:
+            result_dict[col] = 'auto'
+
+        return result_dict
+
     def Encode(self, df, encoding_dict):
         """
         Encode categorical columns in a DataFrame based on the specified encoding method wanted by the user.
 
-            Parameters:
+        Parameters:
             - df: pandas DataFrame
             - encoding_dict: a dictionary where keys are column names and values are encoding methods ("label" or "onehot")
 
         Returns:
             - df_encoded: pandas DataFrame with encoded categorical columns
         """
-
+        # Create a copy of the original DataFrame
         df_encoded = df.copy()
 
         for col, method in encoding_dict.items():
-            if method == "label":
+            if method == "label" or (method == "auto" and df[col].nunique() >= 5):
                 # Use LabelEncoder for ordinal encoding
                 label_encoder = LabelEncoder()
                 df_encoded[col] = label_encoder.fit_transform(df_encoded[col])
 
-            elif method == "onehot":
+            elif method == "onehot" or (method == "auto" and df[col].nunique() < 5):
                 # Use OneHotEncoder for one-hot encoding
                 df_encoded = pd.get_dummies(df_encoded, columns=[col])
 
@@ -402,8 +485,9 @@ class HandlingColinearity:
         if auto_handling:
             columns_to_drop = [variables_cleaned.index[i][0] for i in range(len(variables_cleaned))]
             columns_to_keep = [variables_cleaned.index[i][1] for i in range(len(variables_cleaned))]
-            print("I have removed this/those column/s: ", columns_to_drop)
-            print("and kept this/those column/s: ", columns_to_keep)
+            print("Co-linearity detected")
+            print("removed column/s: ", columns_to_drop)
+            print("kept column/s: ", columns_to_keep)
             df.drop(columns=columns_to_drop, inplace=True)
         else:
             columns_to_drop = []
@@ -419,10 +503,9 @@ class HandlingColinearity:
 
         return df
 
+
+
 class test_server:
-    def change_parameters(self,parameters):
-        parameters['test']="the server connected to scripts successfully"
+    def change_parameters(self, parameters):
+        parameters['test'] = "the server connected to scripts successfully"
         return parameters
-
-
-
