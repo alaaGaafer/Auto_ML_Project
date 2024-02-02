@@ -49,7 +49,7 @@ class AutoClean:
         encoding_dict = EncodeCategorical().categorical_columns(df_copy)
         df_copy = AutoClean.encode_categorical(df_copy, encoding_dict)
         # Reduce dimensions
-        # df_copy = AutoClean.reduceDimensions(df_copy)
+        df_copy = AutoClean.reduceDimensions(df_copy)
 
         print("Final data after cleaning: ")
         print(df_copy)
@@ -168,7 +168,10 @@ class AutoClean:
         # print('the reduced features are: ',reducedFeatures)
         non_numerical_columns = df.select_dtypes(exclude=['number']).columns
         non_numerical_df = df[non_numerical_columns]
-        concatenated_features = pd.concat([non_numerical_df, pd.DataFrame(reducedFeatures)], axis=1)
+        non_numerical_df.reset_index(drop=True, inplace=True)
+        # print("the non numerical columns are: ",non_numerical_df)
+        # print("the reduced features are: ",reducedFeatures)
+        concatenated_features = pd.concat([non_numerical_df, reducedFeatures], axis=1)
         return concatenated_features
 
 
