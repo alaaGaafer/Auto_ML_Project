@@ -64,7 +64,7 @@ class RemoveIDColumn:
         return df
 
 
-class Convert_to_datetime:
+class ConvertToDatetime:
     """
     A class for converting object-type columns to datetime in a pandas DataFrame.
 

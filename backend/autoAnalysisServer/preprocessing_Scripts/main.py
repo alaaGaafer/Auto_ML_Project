@@ -54,21 +54,21 @@ class AutoClean:
 
         print(df_copy)
 
-
     @staticmethod
     def convert_to_datetime(df):
         print("info before", df.info())
-        df = Convert_to_datetime().convert(df)
+        df = ConvertToDatetime().convert(df)
         print("info after", df.info())
         return df
 
-# Taking input from user , will be taken from the front end later
+    # Taking input from user , will be taken from the front end later
     @staticmethod
     def get_fill_method_input(df, col_name):
         col_type = df.dtypes[col_name]
 
         if pd.api.types.is_numeric_dtype(col_type):  # Check if the column is numeric (int or float)
-            fill_method = input(f"Enter method for handling NaN in '{col_name}' (mean, median, mode, delete, auto): ").lower()
+            fill_method = input(
+                f"Enter method for handling NaN in '{col_name}' (mean, median, mode, delete, auto): ").lower()
             valid_methods = ["mean", "median", "mode", "delete", "auto"]
         elif pd.api.types.is_string_dtype(col_type):  # Check if the column is string
             fill_method = input(f"Enter method for handling NaN in '{col_name}' (mode, delete,auto): ").lower()
