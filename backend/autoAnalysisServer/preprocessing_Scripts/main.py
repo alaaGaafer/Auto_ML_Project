@@ -29,7 +29,7 @@ class AutoClean:
         df_copy = AutoClean.handle_duplicates(df_copy)
 
         # Detect outliers and inform the user
-        outlier_info = Outliers().detect_outliers(df)
+        outlier_info = Outliers().detect_outliers(df_copy)
         # next line should be called from the front-end after entering the user choices
         df_copy = AutoClean.handle_outliers(df_copy, outlier_info)
 
@@ -37,22 +37,20 @@ class AutoClean:
         method = 'auto'
         df_copy = DataNormalization().normalize_data(df_copy, method)
 
-        # Encode categorical variables
-        encoding_dict = EncodeCategorical().categorical_columns(df_copy)
-        df_copy = AutoClean.encode_categorical(df_copy, encoding_dict)
-
-        print(df_copy.columns)
-
         # Handle low variance columns, detect it and inform the user
         low_variance_columns = HandlingColinearity().detect_low_variance(df_copy)
         actions = {c: "auto" for c in low_variance_columns}
         # next line should be called from the front-end after entering the user choices
         df_copy = HandlingColinearity().handle_low_variance(df_copy, actions)
-
         # Detect and handle co-linearity
         df_copy = HandlingColinearity().handling_colinearity(df_copy)
 
+        # Encode categorical variables
+        encoding_dict = EncodeCategorical().categorical_columns(df_copy)
+        df_copy = AutoClean.encode_categorical(df_copy, encoding_dict)
+
         print(df_copy)
+        print(df_copy.columns)
 
     @staticmethod
     def convert_to_datetime(df):
