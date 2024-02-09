@@ -8,6 +8,7 @@ from sklearn.ensemble import RandomForestClassifier
 from sklearn.feature_selection import SelectFromModel
 import matplotlib.pyplot as plt
 
+
 class RemoveIDColumn:
     """
     A class for automatically identifying and removing potential ID columns
@@ -18,7 +19,7 @@ class RemoveIDColumn:
     """
 
     @classmethod
-    def remove_id_column(self, df):
+    def remove_id_column(cls, df):
         """
         Identifies and removes potential ID columns based on column names or high cardinality.
 
@@ -36,7 +37,7 @@ class RemoveIDColumn:
         if id_columns:
             df = df.drop(columns=id_columns)
             print(f"Removed ID column(s): {', '.join(id_columns)}")
-        df = self.remove_high_cardinality_columns(df)
+        df = cls.remove_high_cardinality_columns(df)
 
         return df
 
@@ -85,11 +86,27 @@ class ConvertToDatetime:
         Returns:
             - df: pandas DataFrame with converted datetime columns
         """
+        # date_formats = [
+        #     "%Y-%m-%dT%H:%M:%S",
+        #     "%Y-%m-%dT%H:%M:%SZ",
+        #     "%B %d, %Y %I:%M:%S %p",
+        #     "%m/%d/%Y %H:%M",
+        #     "%A, %B %d, %Y %H:%M",
+        #     "%b %d, %Y %H:%M",
+        #     "%d/%m/%Y %H:%M",
+        #     "%d-%b-%Y %H:%M",
+        #     "%Y-%m-%dT%H:%M:%S.%f"
+        # ]
 
-        for col in df.columns:
-            if pd.api.types.is_object_dtype(df[col]):
+        # Get columns with object dtype
+        object_cols = df.select_dtypes(include=['object']).columns
+
+        # Iterate through each column
+        for col in object_cols:
+            if 'date' in col.lower():
                 try:
                     df[col] = pd.to_datetime(df[col])
+                    break  # Break the loop if conversion is successful
                 except ValueError:
                     pass
 
@@ -108,26 +125,30 @@ class MissingValues:
     # detection will appear as a notification to the user
     def detect_nulls(self, df):
         """
-        Detects null values in each column and informs the user.
+        Detects null values in each column and returns a dictionary with columns with nulls,
+        their type, number of nulls, and locations.
 
         Parameters:
             - df: pandas DataFrame
 
         Returns:
-            - columns containing nulls
+            - dictionary containing columns with nulls, their type, number of nulls, and locations
         """
         null_info = df.isnull().sum()
         columns_with_nulls = null_info[null_info > 0]
 
+        nulls_dict = {}
+
         if columns_with_nulls.empty:
-            print("No null values detected.")
+            return {"No null values detected": None}
         else:
-            print("Null values detected:")
             for col, count in columns_with_nulls.items():
-                print(f"Column: {col}, Number of Nulls: {count}")
-                print(f"Locations of Nulls: {df.index[df[col].isnull()].tolist()}")
-                print("\n")
-        return columns_with_nulls
+                nulls_dict[col] = {
+                    "type": df[col].dtype,
+                    "number_of_nulls": count,
+                    "locations_of_nulls": df.index[df[col].isnull()].tolist()
+                }
+        return nulls_dict
 
     def handle_nan(self, df, fillNA_dict):
         """
@@ -135,7 +156,7 @@ class MissingValues:
 
         Parameters:
             - df: pandas DataFrame
-            - handle: 'auto' or 'delete'
+            - fillNA_dict: A dictionary contains columns as keys and handling methods chosen by the user (if not specified it gets auto handled)
 
         Returns:
             - df: pandas DataFrame with missing values handled
@@ -224,12 +245,12 @@ class MissingValues:
                         c += 1
 
                 dynamic_pattern = (series_copy[start_index + 1] - series_copy[start_index]).total_seconds() / (
-                            60 * 60 * 24)
+                        60 * 60 * 24)
 
                 # If the gaps are consistent, fill NaN values using the dynamic pattern
                 if c == (max_sequential_non_nulls - 2):
                     dynamic_pattern = (series_copy[start_index + 1] - series_copy[start_index]).total_seconds() / (
-                                60 * 60 * 24)
+                            60 * 60 * 24)
                     # print("Gap Pattern = ", dynamic_pattern)
 
                     # Fill NaN values before the sequence
@@ -282,7 +303,8 @@ class Outliers:
     A class for handling outliers in a pandas DataFrame.
 
     Methods:
-        - handle_outliers(df, method='z_score', handle='auto', threshold=3): Handles outliers based on the specified method.
+        - detect_outliers(df, threshold=3): Detects outliers using z-score and informs the user.
+        - handle_outliers(df, methods): Handles outliers based on the specified method.
     """
 
     def detect_outliers(self, df, threshold=3):
@@ -291,11 +313,11 @@ class Outliers:
 
         Parameters:
             - df: pandas DataFrame
-            - method: 'z_score' or specific method for detecting outliers
+            - method: 'z_score'
             - threshold: Z-score threshold for identifying outliers
 
         Returns:
-            - None
+            - outlier_info
         """
         outlier_info = {}
 
@@ -322,20 +344,20 @@ class Outliers:
 
         return outlier_info
 
-    def handle_outliers(self, df, methods):
+    def handle_outliers(self, df, choices):
         """
         Handle outliers in the data.
 
         Parameters:
             - df: pandas DataFrame
-            - methods: Dictionary with keys as column names, values as tuples (method, handle, threshold)
+            - choices: Dictionary with column names as keys, values as tuples (method, handle, threshold)
                        where method can be 'z_score' or 'IQR', handle can be 'auto', 'delete', 'median', 'mean', and threshold is the outlier threshold.
 
         Returns:
             - df: pandas DataFrame with outliers handled
         """
         # in the website threshold will be a default of 1.5 in case of IQR and 3 in case of z-score if the user doesn't enter another one.
-        for col, (method, handle, threshold) in methods.items():
+        for col, (method, handle, threshold) in choices.items():
             outliers_mask = None
             if method == 'z_score':
                 z_scores = np.abs((df[col] - df[col].mean()) / df[col].std())
@@ -469,13 +491,15 @@ class HandlingColinearity:
         """
         df_numeric = df.select_dtypes(include=['number'])
         low_variance_columns = [column for column in df_numeric.columns if df_numeric[column].var() < var_threshold]
+        low_variance_info = {}
+
         if low_variance_columns:
-            print("The following columns have low variance:")
-            for col in low_variance_columns:
-                print(f"- {col}")
+            low_variance_info['low_variance_detected'] = True
+            low_variance_info['low_variance_columns'] = low_variance_columns
         else:
-            print("No columns with low variance detected.")
-        return low_variance_columns
+            low_variance_info['low_variance_detected'] = False
+
+        return low_variance_columns, low_variance_info
 
     def handle_low_variance(self, df, actions):
         """
@@ -493,7 +517,7 @@ class HandlingColinearity:
                 df.drop(columns=column, inplace=True)
         return df
 
-    def handling_colinearity(self, df, auto_handling=True):
+    def handling_colinearity(self, df):
         # Select numeric variables only
         numeric_df = df.select_dtypes(include='number')
 
@@ -502,27 +526,18 @@ class HandlingColinearity:
         high_corr_pairs = (corr.abs() > 0.5) & (corr != 1)
         high_corr_variables = corr[high_corr_pairs].stack()
         variables_cleaned = high_corr_variables.drop_duplicates()
+        handling_info = {}
 
-        if auto_handling:
+        if not variables_cleaned.empty:
             columns_to_drop = [variables_cleaned.index[i][0] for i in range(len(variables_cleaned))]
             columns_to_keep = [variables_cleaned.index[i][1] for i in range(len(variables_cleaned))]
-            print("Co-linearity detected")
-            print("removed column/s: ", columns_to_drop)
-            print("kept column/s: ", columns_to_keep)
-            df.drop(columns=columns_to_drop, inplace=True)
-        else:
-            columns_to_drop = []
-            for i in range(len(variables_cleaned)):
-                print("Which variable do you want to remove?")
-                print(f"1-{variables_cleaned.index[i][0]}, 2-{variables_cleaned.index[i][1]}")
-                choice = int(input())
-                if choice == 1:
-                    columns_to_drop.append(variables_cleaned.index[i][0])
-                elif choice == 2:
-                    columns_to_drop.append(variables_cleaned.index[i][1])
+            handling_info['co-linearity_detected'] = True
+            handling_info['removed_columns'] = columns_to_drop
+            handling_info['kept_columns'] = columns_to_keep
             df.drop(columns=columns_to_drop, inplace=True)
 
-        return df
+        return df, handling_info
+
 
 class HandlingReduction:
     """
@@ -533,26 +548,29 @@ class HandlingReduction:
         - explainedVariability(df): Returns the cumulative explained variance and the number of components to keep.
         - plotExplainedVariance(X_pca): Plots the explained variance of the PCA components.
     """
-    def feature_reduction(self,df,num_components_to_keep):
-        X=df.copy()
-        X= X.select_dtypes(include=[np.number])
+
+    def feature_reduction(self, df, num_components_to_keep):
+        X = df.copy()
+        X = X.select_dtypes(include=[np.number])
         pca = PCA(n_components=num_components_to_keep)
         X_pca = pca.fit_transform(X)
         reduced_df = pd.DataFrame(data=X_pca, columns=[f'PC_{i + 1}' for i in range(num_components_to_keep)])
         return reduced_df
-    def explainedVariability(self,df):
-        explainVariancethreshold=0.9
-        X=df.copy()
-        X= X.select_dtypes(include=[np.number])
+
+    def explainedVariability(self, df):
+        explainVariancethreshold = 0.9
+        X = df.copy()
+        X = X.select_dtypes(include=[np.number])
         pca = PCA()
         pca.fit(X)
-        explainVariance=pca.explained_variance_ratio_
-        cumsum=np.cumsum(explainVariance)
+        explainVariance = pca.explained_variance_ratio_
+        cumsum = np.cumsum(explainVariance)
         num_components_to_keep = np.argmax(cumsum >= explainVariancethreshold) + 1
-        return cumsum,num_components_to_keep
-    def plotExplainedVariance(self,X_pca):
-        numberofcomponents=len(X_pca)
-        if numberofcomponents<=2:
+        return cumsum, num_components_to_keep
+
+    def plotExplainedVariance(self, X_pca):
+        numberofcomponents = len(X_pca)
+        if numberofcomponents <= 2:
             plt.plot(X_pca)
             plt.xlabel('number of components')
             plt.ylabel('cumulative explained variance')

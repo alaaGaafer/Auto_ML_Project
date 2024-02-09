@@ -4,7 +4,7 @@ from functions import *
 class AutoClean:
 
     @staticmethod
-    def clean_data(File_path, Is_clustering):
+    def clean_data(File_path, problem, y_column):
         # Read CSV file
         df = pd.read_csv(File_path)
         print(df)
@@ -12,17 +12,17 @@ class AutoClean:
         df_copy = df.copy()
 
         # Convert to datetime
-        # df_copy = AutoClean.convert_to_datetime(df_copy)
+        df_copy = AutoClean.convert_to_datetime(df_copy)
 
         # removing Id column
-        if not Is_clustering:
+        if problem != "Clustering":
             df_copy = RemoveIDColumn.remove_id_column(df_copy)
 
         # Handle missing values , next line will be a notification in front-end
-        columns_with_nulls = MissingValues().detect_nulls(df_copy)
+        nulls_dict = MissingValues().detect_nulls(df_copy)
 
         # next line should be called from the front-end after entering the user choices
-        df_copy = AutoClean.handle_missing_values(df_copy, columns_with_nulls)
+        df_copy = AutoClean.handle_missing_values(df_copy, nulls_dict)
         print(df_copy.head(20))
 
         # Handle duplicates, notify the user
@@ -38,12 +38,16 @@ class AutoClean:
         df_copy = DataNormalization().normalize_data(df_copy, method)
 
         # Handle low variance columns, detect it and inform the user
-        low_variance_columns = HandlingColinearity().detect_low_variance(df_copy)
+        df_without_y = df_copy.drop(columns=[y_column])
+        low_variance_columns, low_variance_info = HandlingColinearity().detect_low_variance(df_without_y)
         actions = {c: "auto" for c in low_variance_columns}
         # next line should be called from the front-end after entering the user choices
-        df_copy = HandlingColinearity().handle_low_variance(df_copy, actions)
+        df_without_y = HandlingColinearity().handle_low_variance(df_without_y, actions)
         # Detect and handle co-linearity
-        df_copy = HandlingColinearity().handling_colinearity(df_copy)
+        df_without_y, handling_info = HandlingColinearity().handling_colinearity(df_without_y)
+        df_without_y[y_column] = df_copy[y_column]
+        df_copy = df_without_y.copy()
+        print("df_copy",df_copy)
 
         # Encode categorical variables
         encoding_dict = EncodeCategorical().categorical_columns(df_copy)
@@ -71,7 +75,7 @@ class AutoClean:
             fill_method = input(
                 f"Enter method for handling NaN in '{col_name}' (mean, median, mode, delete, auto): ").lower()
             valid_methods = ["mean", "median", "mode", "delete", "auto"]
-        elif pd.api.types.is_string_dtype(col_type):  # Check if the column is string
+        elif pd.api.types.is_object_dtype(col_type):  # Check if the column is an object
             fill_method = input(f"Enter method for handling NaN in '{col_name}' (mode, delete,auto): ").lower()
             valid_methods = ["mode", "delete", "auto"]
         else:
@@ -85,11 +89,10 @@ class AutoClean:
         return fill_method
 
     @staticmethod
-    def handle_missing_values(df, columns_with_nulls):
+    def handle_missing_values(df, nulls_dict):
         print('nan before: ', df.isna().sum())
         fillNA_dict = {}
-
-        for col, null_count in columns_with_nulls.items():
+        for col in nulls_dict.keys():
             fill_method = AutoClean.get_fill_method_input(df, col)
             fillNA_dict[col] = fill_method
 
@@ -123,7 +126,6 @@ class AutoClean:
             else:
                 print("Invalid choice. Using default handling (Method: z_score, Handle: auto, Threshold: 3).")
                 methods_input[col] = ('z_score', 'auto', 3)
-
         return methods_input
 
     @staticmethod
@@ -134,7 +136,6 @@ class AutoClean:
 
     @staticmethod
     def encode_categorical(df, encoding_dict):
-        print("Encoded: ")
         return EncodeCategorical().Encode(df, encoding_dict)
     @staticmethod
 ###### should be modified to handle only numerical dataFrame############################
@@ -151,7 +152,7 @@ class AutoClean:
         choice = input().lower()
         if choice == "yes" or choice == "y":
             explainedVariability,num_components_to_keep=HandlingReduction().explainedVariability(numericalDf)
-            for i,value in enumerate(explainedVariability):
+            for i, value in enumerate(explainedVariability):
                 
                 print(f"The explained variability with {i+1} components is: {value}")
             
@@ -160,7 +161,7 @@ class AutoClean:
             if choice == "yes" or choice == "y":
                 reducedFeatures=HandlingReduction().feature_reduction(numericalDf,num_components_to_keep)
             else:
-                choice=int(input("Enter the number of components you want to keep: "))
+                choice = int(input("Enter the number of components you want to keep: "))
                 reducedFeatures=HandlingReduction().feature_reduction(numericalDf,choice)
         else:
             print("The number of dimensions will not be reduced")
@@ -176,6 +177,9 @@ class AutoClean:
 
 
 if __name__ == "__main__":
-    # file_path = "data.csv"
-    is_clustering = False
-    AutoClean.clean_data("data.csv", is_clustering)
+    file_path = "data.csv"
+    # file_path = r"C:\Users\Alaa\Downloads\titanic\train.csv"
+
+    problem = "Clustering"
+    y_column = "Survived"
+    AutoClean.clean_data(file_path, problem, y_column)
