@@ -177,7 +177,7 @@ class AutoClean:
 
 if __name__ == "__main__":
     # file_path = "data.csv"
-    file_path = r"C:\Users\Alaa\Downloads\titanic\train.csv"
+    file_path = "train.csv"
 
     problem = "Clustering"
     y_column = "Survived"
