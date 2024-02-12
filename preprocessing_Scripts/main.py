@@ -4,7 +4,7 @@ from functions import *
 class AutoClean:
 
     @staticmethod
-    def clean_data(File_path, problem, y_column):
+    def clean_data(File_path, Problem, Y_column):
         # Read CSV file
         df = pd.read_csv(File_path)
         print(df)
@@ -15,7 +15,7 @@ class AutoClean:
         df_copy = AutoClean.convert_to_datetime(df_copy)
 
         # removing Id column
-        if problem != "Clustering":
+        if Problem != "Clustering":
             df_copy = RemoveIDColumn.remove_id_column(df_copy)
 
         # Handle missing values , next line will be a notification in front-end
@@ -38,14 +38,14 @@ class AutoClean:
         df_copy = DataNormalization().normalize_data(df_copy, method)
 
         # Handle low variance columns, detect it and inform the user
-        df_without_y = df_copy.drop(columns=[y_column])
+        df_without_y = df_copy.drop(columns=[Y_column])
         low_variance_columns, low_variance_info = HandlingColinearity().detect_low_variance(df_without_y)
         actions = {c: "auto" for c in low_variance_columns}
         # next line should be called from the front-end after entering the user choices
         df_without_y = HandlingColinearity().handle_low_variance(df_without_y, actions)
         # Detect and handle co-linearity
         df_without_y, handling_info = HandlingColinearity().handling_colinearity(df_without_y)
-        df_without_y[y_column] = df_copy[y_column]
+        df_without_y[Y_column] = df_copy[Y_column]
         df_copy = df_without_y.copy()
         print("df_copy",df_copy)
 
@@ -151,18 +151,17 @@ class AutoClean:
         print("Do you want to reduce the number of dimensions? (yes/no)")
         choice = input().lower()
         if choice == "yes" or choice == "y":
-            explainedVariability,num_components_to_keep=HandlingReduction().explainedVariability(numericalDf)
-            for i, value in enumerate(explainedVariability):
-                
-                print(f"The explained variability with {i+1} components is: {value}")
-            
+            explainedVariability, explanation_list = HandlingReduction().explainedVariability(numericalDf)
+            for explanation in explanation_list:
+                print(explanation)
             print("Do you want to handle the reduction automatically? (yes/no)")
             choice = input().lower()
             if choice == "yes" or choice == "y":
-                reducedFeatures=HandlingReduction().feature_reduction(numericalDf,num_components_to_keep)
+                num_components_to_keep = HandlingReduction().NumberOfComponents(numericalDf, explainedVariability)
+                reducedFeatures = HandlingReduction().feature_reduction(numericalDf, num_components_to_keep)
             else:
                 choice = int(input("Enter the number of components you want to keep: "))
-                reducedFeatures=HandlingReduction().feature_reduction(numericalDf,choice)
+                reducedFeatures = HandlingReduction().feature_reduction(numericalDf, choice)
         else:
             print("The number of dimensions will not be reduced")
             return df
@@ -177,8 +176,8 @@ class AutoClean:
 
 
 if __name__ == "__main__":
-    file_path = "data.csv"
-    # file_path = r"C:\Users\Alaa\Downloads\titanic\train.csv"
+    # file_path = "data.csv"
+    file_path = r"C:\Users\Alaa\Downloads\titanic\train.csv"
 
     problem = "Clustering"
     y_column = "Survived"

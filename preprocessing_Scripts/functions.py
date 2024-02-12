@@ -559,14 +559,21 @@ class HandlingReduction:
 
     def explainedVariability(self, df):
         explainVariancethreshold = 0.9
+        explanation_list = []
         X = df.copy()
         X = X.select_dtypes(include=[np.number])
         pca = PCA()
         pca.fit(X)
         explainVariance = pca.explained_variance_ratio_
         cumsum = np.cumsum(explainVariance)
+        for i, value in enumerate(cumsum):
+            explanation_list.append(f"The explained variability with {i + 1} components is: {value}")
+        return cumsum ,explanation_list
+
+    def NumberOfComponents(self, df, cumsum):
+        explainVariancethreshold = 0.9
         num_components_to_keep = np.argmax(cumsum >= explainVariancethreshold) + 1
-        return cumsum, num_components_to_keep
+        return num_components_to_keep
 
     def plotExplainedVariance(self, X_pca):
         numberofcomponents = len(X_pca)
