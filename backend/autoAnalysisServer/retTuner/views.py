@@ -17,7 +17,7 @@ def inputvalidation(request):
         name = data.get('name')
         password = data.get('password')
         # print('test2')
-        user=usersData.objects.filter(name=name,password=password)
+        user=usersData.objects.filter(email=name,password=password)
         if user.exists():
             parameters['status']='success'
             parameters['message']='User is valid'
