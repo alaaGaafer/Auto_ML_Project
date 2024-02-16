@@ -15,11 +15,11 @@ Including another URLconf
     2. Add a URL to urlpatterns:  path('blog/', include('blog.urls'))
 """
 from django.contrib import admin
-from django.urls import path
+from django.urls import path, include
 from preprocessing import views
 
-urlpatterns = [
-    path('admin/', admin.site.urls),
-    path('api/getData', views.my_function, name="my-function"),
 
-]
+urlpatterns = [
+    path('retTuner/', include('retTuner.urls')),
+    path('admin/', admin.site.urls),
+ ]
