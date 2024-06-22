@@ -1,7 +1,7 @@
 from functions import *
 
 
-def Detections(File_path, Problem, Y_column):
+def Detections(File_path,date_col, Problem, Y_column):
     # Check file extension
     file_extension = File_path.split('.')[-1]
     if file_extension == 'csv':
