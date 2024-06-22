@@ -11,14 +11,13 @@ def Detections(File_path, Problem, Y_column):
     else:
         raise ValueError("Unsupported file format")
     df_copy = df.copy()
-    if Problem != "Clustering":
-        df_copy = RemoveIDColumn.remove_id_column(df_copy)
-
+    df_copy = RemoveIDColumn.remove_id_column(df_copy)
+    df_copy[date_col] = pd.to_datetime(df_copy[date_col])
+        
     # Store categorical and numerical columns
     categorical_columns = df_copy.select_dtypes(include=['object']).columns.tolist()
     numerical_columns = df_copy.select_dtypes(include=['number']).columns.tolist()
 
-    df_copy = ConvertToDatetime().convert(df_copy)
     nulls_dict = MissingValues().detect_nulls(df_copy)
     outlier_info = Outliers().detect_outliers(df_copy)
     duplicates = df.duplicated().any()
@@ -30,7 +29,7 @@ def Detections(File_path, Problem, Y_column):
 
 class AutoClean:
 
-    def Handling_calls(self, File_path, Problem, Y_column, fillNA_dict, methods_input, method, actions, encoding_dict,
+    def Handling_calls(self, File_path, date_col, Problem, Y_column, fillNA_dict, methods_input, method, actions, encoding_dict,
                        reduce, auto_reduce, num_components_to_keep):
         # Read CSV file
         file_extension = File_path.split('.')[-1]
@@ -45,8 +44,10 @@ class AutoClean:
         df_copy = df.copy()
 
         # removing Id column
-        if Problem != "Clustering":
-            df_copy = RemoveIDColumn.remove_id_column(df_copy)
+        df_copy = RemoveIDColumn.remove_id_column(df_copy)
+        df_copy[date_col] = pd.to_datetime(df_copy[date_col]) 
+        if Problem == "Time series":
+            df_copy.rename(columns={date_col: 'ds', Y_column: 'y'}, inplace=True)  
 
         # next line should be called from the front-end after entering the user choices
         df_copy = MissingValues().handle_nan(df_copy, fillNA_dict)
@@ -82,12 +83,3 @@ class AutoClean:
         non_numerical_df.reset_index(drop=True, inplace=True)
         concatenated_features = pd.concat([non_numerical_df, reducedFeatures], axis=1)
         return concatenated_features
-
-# if __name__ == "__main__":
-#     # file_path = "data.csv"
-#     file_path = "train.csv"
-#
-#     problem = "Clustering"
-#     y_column = "Survived"
-#     Detections(file_path, y_column)
-#     # AutoClean.Handling_calls(file_path, problem, y_column)
