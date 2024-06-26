@@ -1,0 +1,91 @@
+{
+  "hyperparameters": [
+    {
+      "name": "Models",
+      "type": "categorical",
+      "choices": [
+        "Arima",
+        "Sarima"
+      ],
+      "default": "Arima",
+      "weights": null
+    },
+    {
+      "name": "d",
+      "type": "uniform_int",
+      "log": false,
+      "lower": 0,
+      "upper": 3,
+      "default": 2,
+      "q": null
+    },
+    {
+      "name": "p",
+      "type": "uniform_int",
+      "log": false,
+      "lower": 0,
+      "upper": 3,
+      "default": 2,
+      "q": null
+    },
+    {
+      "name": "q",
+      "type": "uniform_int",
+      "log": false,
+      "lower": 0,
+      "upper": 3,
+      "default": 2,
+      "q": null
+    },
+    {
+      "name": "sd",
+      "type": "uniform_int",
+      "log": false,
+      "lower": 0,
+      "upper": 3,
+      "default": 2,
+      "q": null
+    },
+    {
+      "name": "sp",
+      "type": "uniform_int",
+      "log": false,
+      "lower": 0,
+      "upper": 3,
+      "default": 2,
+      "q": null
+    },
+    {
+      "name": "sq",
+      "type": "uniform_int",
+      "log": false,
+      "lower": 0,
+      "upper": 3,
+      "default": 2,
+      "q": null
+    }
+  ],
+  "conditions": [
+    {
+      "child": "sd",
+      "parent": "Models",
+      "type": "EQ",
+      "value": "Sarima"
+    },
+    {
+      "child": "sp",
+      "parent": "Models",
+      "type": "EQ",
+      "value": "Sarima"
+    },
+    {
+      "child": "sq",
+      "parent": "Models",
+      "type": "EQ",
+      "value": "Sarima"
+    }
+  ],
+  "forbiddens": [],
+  "python_module_version": "0.6.1",
+  "json_format_version": 0.4
+}
