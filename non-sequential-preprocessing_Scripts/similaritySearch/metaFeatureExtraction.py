@@ -4,10 +4,11 @@ import numpy as np
 
 
 class metafeatureExtraction:
-    def __init__(self, df):
+    def __init__(self, df, dataset_name):
         self.df = df
         self.df.columns = list(self.df.columns[:-1]) + ['Target']
-        self.KBPath = 'knowledgeBase.csv'
+        self.KBPath = 'knowledgeBaseReg.csv'
+        self.dataset_name = dataset_name
 
     def getNumberOfFeaturesandTheirlog(self):
         numberofFeatres = len(self.df.columns)
@@ -34,7 +35,7 @@ class metafeatureExtraction:
     def ratioofNumericaltoCategoricalFeatures(self):
         numberofNumericalFeatures = len(self.df.select_dtypes(include=[np.number]).columns)
         numberofCategoricalFeatures = len(self.df.select_dtypes(exclude=['number']).columns)
-        ratio = numberofNumericalFeatures / numberofCategoricalFeatures
+        ratio = numberofNumericalFeatures / numberofCategoricalFeatures if numberofCategoricalFeatures != 0 else 0
         return ratio
 
     def classeEntropy(self):
@@ -115,20 +116,19 @@ class metafeatureExtraction:
         kurtosisstd = self.kurtosisStd()
         DatasetRatioofNumberofFeaturestoNumberofInstances = self.DatasetRatioofNumberofFeaturestoNumberofInstances()
         return [
-            numberofFeatres, logofFeatures, numberofInstances, logofInstances, numberofClasses,
-            numberofNumericalFeatures,
-            numberofCategoricalFeatures, ratio, entropy, classprobmax, classprobmin, classprobmean, classprobstd,
-            symbolsmean, symbolssum, symbolsstd, skewnessmin, skewnessmax, skewnessmean, skewnessstd, kurtosismin,
-            kurtosismax, kurtosismean, kurtosisstd, DatasetRatioofNumberofFeaturestoNumberofInstances
+            self.dataset_name, numberofFeatres, logofFeatures, numberofInstances, logofInstances, numberofClasses,
+            numberofNumericalFeatures, numberofCategoricalFeatures, ratio, entropy, classprobmax, classprobmin,
+            classprobmean, classprobstd, symbolsmean, symbolssum, symbolsstd, skewnessmin, skewnessmax, skewnessmean,
+            skewnessstd, kurtosismin, kurtosismax, kurtosismean, kurtosisstd, DatasetRatioofNumberofFeaturestoNumberofInstances
         ]
 
     def addToKnowledgeBase(self):
         meta_features = self.getMetaFeatures()
         try:
-            knowledgeBase = pd.read_csv(self.KBPath)
-        except FileNotFoundError:
+            knowledgeBase = pd.read_csv(self.KBPath, encoding='latin1')
+        except (FileNotFoundError, pd.errors.EmptyDataError):
             knowledgeBase = pd.DataFrame(columns=[
-                'numberofFeatres', 'logofFeatures', 'numberofInstances', 'logofInstances', 'numberofClasses',
+                'Dataset_Name', 'numberofFeatres', 'logofFeatures', 'numberofInstances', 'logofInstances', 'numberofClasses',
                 'numberofNumericalFeatures', 'numberofCategoricalFeatures', 'ratio', 'entropy', 'classprobmax',
                 'classprobmin', 'classprobmean', 'classprobstd', 'symbolsmean', 'symbolssum', 'symbolsstd',
                 'skewnessmin', 'skewnessmax', 'skewnessmean', 'skewnessstd', 'kurtosismin', 'kurtosismax',
@@ -136,17 +136,18 @@ class metafeatureExtraction:
             ])
         newrow = pd.DataFrame([meta_features], columns=knowledgeBase.columns)
         knowledgeBase = pd.concat([knowledgeBase, newrow], ignore_index=True)
-        knowledgeBase.to_csv(self.KBPath, index=False)
+        knowledgeBase.to_csv(self.KBPath, index=False, encoding='latin1')
 
 
-def process_folder(folder_path):
-    for filename in os.listdir(folder_path):
+def process_folder(Folder_path):
+    for filename in os.listdir(Folder_path):
         if filename.endswith('.csv'):
-            file_path = os.path.join(folder_path, filename)
-            df = pd.read_csv(file_path)
-            meta_extractor = metafeatureExtraction(df)
+            file_path = os.path.join(Folder_path, filename)
+            df = pd.read_csv(file_path, encoding='latin1')
+            dataset_name = os.path.splitext(filename)[0]
+            meta_extractor = metafeatureExtraction(df, dataset_name)
             meta_extractor.addToKnowledgeBase()
 
 
-folder_path = r"C:\Users\Alaa\Desktop\Auto_ML_Project\non-sequential-preprocessing_Scripts\similaritySearch\Extracted Classification data\Classification"
+folder_path = r"C:\Users\Alaa\Desktop\Auto_ML_Project\non-sequential-preprocessing_Scripts\similaritySearch\Regression data\Regression"
 process_folder(folder_path)
