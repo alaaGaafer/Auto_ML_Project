@@ -1,6 +1,6 @@
 # our tasks to track feel free to choose one
 - is there a better way instead CSV nn 
-- modify the cash algo (assem)
+- modify the cash algo (assem) finished
 
 - connect the similarity search to feature extractor(alaa))
 - create search on by key knowledge base(alaa)
