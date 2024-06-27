@@ -1,6 +1,7 @@
 # our tasks to track feel free to choose one
 - is there a better way instead CSV nn 
 - modify the cash algo (assem) finished
+- add the sarima to cash (assem and alaa)
 
 - connect the similarity search to feature extractor(alaa))
 - create search on by key knowledge base(alaa)
