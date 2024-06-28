@@ -24,31 +24,31 @@ class CustomCallback(Callback):
 
     def on_tell_end(self, smbo, info, value):
         self.trials_counter += 1
-        print(f"The number of trials is: {self.trials_counter}")
+        # print(f"The number of trials is: {self.trials_counter}")
 
-        incumbents = smbo.intensifier.get_incumbents()
-        if incumbents:
-            current_incumbent = incumbents[0]  # Assuming there's at least one incumbent
-            current_incumbent_dict = current_incumbent.get_dictionary()
+        incumbent = smbo.intensifier.get_incumbent()
+        
+        current_incumbent = incumbent  # Assuming there's at least one incumbent
+        current_incumbent_dict = current_incumbent.get_dictionary()
 
-            if self.last_incumbent == current_incumbent_dict:
-                self.incumbent_counter += 1
-            else:
-                self.incumbent_counter = 0  # Reset the counter if incumbent changes
-                self.last_incumbent = current_incumbent_dict
+        if self.last_incumbent == current_incumbent_dict:
+            self.incumbent_counter += 1
+        else:
+            self.incumbent_counter = 0  # Reset the counter if incumbent changes
+            self.last_incumbent = current_incumbent_dict
 
-            if self.incumbent_counter >= self.max_same_incumbent_trials:
-                print(f"The incumbent has remained the same for {self.max_same_incumbent_trials} trials.")
-                print("Stopping the optimization process.")
-                return False  # This stops the optimization process
+        if self.incumbent_counter >= self.max_same_incumbent_trials:
+            print(f"The incumbent has remained the same for {self.max_same_incumbent_trials} trials.")
+            print("Stopping the optimization process.")
+            return False  # This stops the optimization process
 
-            if self.trials_counter % 10 == 0:
-                print(f"The incumbent is: {current_incumbent_dict}")
-                print(f"The incumbent loss is: {smbo.runhistory.get_cost(current_incumbent)}")
+        if self.trials_counter % 10 == 0:
+            print(f"The incumbent is: {current_incumbent_dict}")
+            print(f"The incumbent loss is: {smbo.runhistory.get_cost(current_incumbent)}")
 
-            if self.trials_counter == 100:
-                print("Let's stop the optimization at trial 100")
-                return False 
+        if self.trials_counter == 100:
+            print("Let's stop the optimization at trial 100")
+            return False 
 
         return None
 
@@ -167,7 +167,7 @@ class Models:
         start_time=time.time()
         config_dict=config.get_dictionary()
         model=config_dict['Models']
-        print(f"config_dict:{config_dict}")
+        # print(f"config_dict:{config_dict}")
         if self.Problemtype=='Classification':
             return self.classification(config_dict,start_time)
         elif self.Problemtype=='Regression':
@@ -184,12 +184,12 @@ class Models:
             Classifier=RandomForestClassifier(n_estimators=configDict['n_estimators'],random_state=42)
         elif model=='SVC':
             Classifier=SVC(C=configDict['regularizationStre'],kernel=configDict['kernel'])
-        print(f"the type of the classifier is: {type(Classifier)}")
+        # print(f"the type of the classifier is: {type(Classifier)}")
         Classifier.fit(self.X_train,self.Y_train)
         y_pred = Classifier.predict(self.X_test)
         loss=1-accuracy_score(self.Y_test,y_pred)
-        print("the loss is: ",loss)
-        return {'loss':loss,'time':time.time()-start_time}
+        # print("the loss is: ",loss)
+        return loss
     def regression(self, configDict,start_time):
             model=configDict['Models']
             if model=='LR':
@@ -205,8 +205,8 @@ class Models:
             regressor.fit(self.X_train,self.Y_train)
             y_pred = regressor.predict(self.X_test)
             mse = mean_squared_error(self.Y_test, y_pred)
-            print("Mean Squared Error:", mse)
-            return {'loss':mse,'time':time.time()-start_time}
+            # print("Mean Squared Error:", mse)
+            return mse
     def timeser(self,configDict):
         model=configDict['Models']
         if model=='Arima':
@@ -245,28 +245,24 @@ class Facade:
             return self.UnbalancedFacade()
     def ClassificationFacade(self):
         classifier=Models(self.models,'Classification',self.X_train,self.Y_train,self.X_test,self.Y_test)
-        scenario = Scenario(classifier.configspace(), deterministic=True,objectives=['loss','time'], n_trials=100)
-        smac = HyperparameterOptimizationFacade(scenario, classifier.train,overwrite=True,callbacks=[CustomCallback()],
-                                                multi_objective_algorithm=HyperparameterOptimizationFacade.get_multi_objective_algorithm(scenario,objective_weights=[2, 1]))
+        scenario = Scenario(classifier.configspace(), deterministic=True, n_trials=100)
+        smac = HyperparameterOptimizationFacade(scenario, classifier.train,overwrite=True,callbacks=[CustomCallback()])
         incumbents = smac.optimize()
-        for incumbent in incumbents:
-            print(incumbent)
+        
         return incumbents
     def RegressionFacade(self):
         Regressor=Models(self.models,'Regression',self.X_train,self.Y_train,self.X_test,self.Y_test)
-        scenario = Scenario(Regressor.configspace(), deterministic=True,objectives=['loss','time'], n_trials=100)
-        smac = HyperparameterOptimizationFacade(scenario, Regressor.train,overwrite=True,callbacks=[CustomCallback()],
-                                                multi_objective_algorithm=HyperparameterOptimizationFacade.get_multi_objective_algorithm(scenario,objective_weights=[2, 1]))
+        scenario = Scenario(Regressor.configspace(), deterministic=True, n_trials=100)
+        smac = HyperparameterOptimizationFacade(scenario, Regressor.train,overwrite=True,callbacks=[CustomCallback()])
         incumbents = smac.optimize()
-        for incumbent in incumbents:
-            print(incumbent)
+        
         return incumbents
     def TimeSeriesFacade(self):
         timeclassifier=Models(self.models,'TimeSeries',self.X_train,self.Y_train,self.X_test,self.Y_test,freq=self.freq,m=self.m)
         scenario = Scenario(timeclassifier.configspace(), deterministic=True, n_trials=100)
         smac = HyperparameterOptimizationFacade(scenario, timeclassifier.train,overwrite=True,callbacks=[CustomCallback()])
         incumbent=smac.optimize()
-        print(incumbent)
+        # print(incumbent)
         return incumbent
         
     def UnbalancedFacade(self):

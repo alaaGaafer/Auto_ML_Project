@@ -1,1 +1,3 @@
 backend/myenv/
+__pycache__/
+smac3_output/
