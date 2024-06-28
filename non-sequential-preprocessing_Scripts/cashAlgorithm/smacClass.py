@@ -175,6 +175,7 @@ class Models:
         elif self.Problemtype=='TimeSeries':
             return self.timeser(config_dict)
     def classification(self,configDict,start_time):
+        Classifier=None
         model=configDict['Models']
         if model=='KNN':
             Classifier=KNeighborsClassifier(n_neighbors=configDict['Ks'])
@@ -192,6 +193,7 @@ class Models:
         return loss
     def regression(self, configDict,start_time):
             model=configDict['Models']
+            regressor=None
             if model=='LR':
                 regressor=LinearRegression()
             elif model=='Lasso':
@@ -202,8 +204,13 @@ class Models:
                 regressor=RandomForestRegressor(n_estimators=configDict['n_estimatorsrf'],random_state=42)
             elif model=='XGboost':
                 regressor=XGBRegressor(n_estimators=configDict['n_estimatorsxg'],random_state=42)
+            # print("xtrain shape:",self.X_train.shape)
+            # print("ytrain shape:",self.Y_train.shape)
             regressor.fit(self.X_train,self.Y_train)
+            # print("xtest shape:",self.X_test.shape)
             y_pred = regressor.predict(self.X_test)
+            # print("ytest shape:",self.Y_test.shape)
+            # print('ypred shape:',y_pred.shape)
             mse = mean_squared_error(self.Y_test, y_pred)
             # print("Mean Squared Error:", mse)
             return mse

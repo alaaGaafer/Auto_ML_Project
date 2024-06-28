@@ -57,7 +57,7 @@ class Bestmodel:
                 model = XGBRegressor(n_estimators=HPOdict.get('n_estimatorsxg', 10))
 
             model.fit(self.X_train, self.y_train)
-            y_pred = model.predict(self.X_test)
+            y_pred = model.predict(self.X_test1)
             mse = mean_squared_error(self.y_test1, y_pred)
             print(f"Model MSE: {mse}")
             self.modelstr=HPOdict['Models']
