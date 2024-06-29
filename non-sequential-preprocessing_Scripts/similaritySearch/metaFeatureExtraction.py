@@ -4,11 +4,14 @@ import numpy as np
 
 
 class metafeatureExtraction:
-    def __init__(self, df, dataset_name):
+    def __init__(self, df, dataset_name, KBPath, Target):
         self.df = df
-        self.df.columns = list(self.df.columns[:-1]) + ['Target']
-        self.KBPath = 'knowledgeBaseReg.csv'
+        # self.df.columns = list(self.df.columns[:-1]) + ['Target']
+        self.Target = Target
+        self.KBPath = KBPath
         self.dataset_name = dataset_name
+        self.numeric_df = self.df.select_dtypes(include=[np.number])
+        self.categorical_df = self.df.select_dtypes(exclude=[np.number]).columns
 
     def getNumberOfFeaturesandTheirlog(self):
         numberofFeatres = len(self.df.columns)
@@ -21,72 +24,72 @@ class metafeatureExtraction:
         return numberofInstances, logofInstances
 
     def getnumberofClasses(self):
-        numberofClasses = len(self.df['Target'].unique())
+        numberofClasses = len(self.df[self.Target].unique())
         return numberofClasses
 
     def getnumberofNumericalFeatures(self):
-        numberofNumericalFeatures = len(self.df.select_dtypes(include=[np.number]).columns)
+        numberofNumericalFeatures = len(self.numeric_df)
         return numberofNumericalFeatures
 
     def getnumberofCategoricalFeatures(self):
-        numberofCategoricalFeatures = len(self.df.select_dtypes(exclude=[np.number]).columns)
+        numberofCategoricalFeatures = len(self.categorical_df)
         return numberofCategoricalFeatures
 
     def ratioofNumericaltoCategoricalFeatures(self):
-        numberofNumericalFeatures = len(self.df.select_dtypes(include=[np.number]).columns)
-        numberofCategoricalFeatures = len(self.df.select_dtypes(exclude=['number']).columns)
+        numberofNumericalFeatures = len(self.numeric_df)
+        numberofCategoricalFeatures = len(self.categorical_df)
         ratio = numberofNumericalFeatures / numberofCategoricalFeatures if numberofCategoricalFeatures != 0 else 0
         return ratio
 
     def classeEntropy(self):
         entropy = -np.sum(
-            self.df['Target'].value_counts(normalize=True) * np.log2(self.df['Target'].value_counts(normalize=True)))
+            self.df[self.Target].value_counts(normalize=True) * np.log2(self.df[self.Target].value_counts(normalize=True)))
         return entropy
 
     def classProbabilityMax(self):
-        return self.df['Target'].value_counts(normalize=True).max()
+        return self.df[self.Target].value_counts(normalize=True).max()
 
     def classProbabilityMin(self):
-        return self.df['Target'].value_counts(normalize=True).min()
+        return self.df[self.Target].value_counts(normalize=True).min()
 
     def classProbabilityMean(self):
-        return self.df['Target'].value_counts(normalize=True).mean()
+        return self.df[self.Target].value_counts(normalize=True).mean()
 
     def classProbabilityStd(self):
-        return self.df['Target'].value_counts(normalize=True).std()
+        return self.df[self.Target].value_counts(normalize=True).std()
 
     def symbolsMean(self):
         return self.df.describe().loc['mean'].mean()
 
     def symbolsSum(self):
-        return self.df.drop(columns='Target').sum().sum()
+        return self.numeric_df.sum().sum()
 
     def symbolsStd(self):
         return self.df.describe().loc['std'].std()
 
     def skewnessMin(self):
-        return self.df.skew().min()
+        return self.numeric_df.skew().min()
 
     def skewnessMax(self):
-        return self.df.skew().max()
+        return self.numeric_df.skew().max()
 
     def skewnessMean(self):
-        return self.df.skew().mean()
+        return self.numeric_df.skew().mean()
 
     def skewnessStd(self):
-        return self.df.skew().std()
+        return self.numeric_df.skew().std()
 
     def kurtosisMin(self):
-        return self.df.kurtosis().min()
+        return self.numeric_df.kurtosis().min()
 
     def kurtosisMax(self):
-        return self.df.kurtosis().max()
+        return self.numeric_df.kurtosis().max()
 
     def kurtosisMean(self):
-        return self.df.kurtosis().mean()
+        return self.numeric_df.kurtosis().mean()
 
     def kurtosisStd(self):
-        return self.df.kurtosis().std()
+        return self.numeric_df.kurtosis().std()
 
     def DatasetRatioofNumberofFeaturestoNumberofInstances(self):
         return len(self.df.columns) / len(self.df)
@@ -119,16 +122,17 @@ class metafeatureExtraction:
             self.dataset_name, numberofFeatres, logofFeatures, numberofInstances, logofInstances, numberofClasses,
             numberofNumericalFeatures, numberofCategoricalFeatures, ratio, entropy, classprobmax, classprobmin,
             classprobmean, classprobstd, symbolsmean, symbolssum, symbolsstd, skewnessmin, skewnessmax, skewnessmean,
-            skewnessstd, kurtosismin, kurtosismax, kurtosismean, kurtosisstd, DatasetRatioofNumberofFeaturestoNumberofInstances
+            skewnessstd, kurtosismin, kurtosismax, kurtosismean, kurtosisstd,
+            DatasetRatioofNumberofFeaturestoNumberofInstances
         ]
 
-    def addToKnowledgeBase(self):
-        meta_features = self.getMetaFeatures()
+    def addToKnowledgeBase(self, meta_features):
         try:
             knowledgeBase = pd.read_csv(self.KBPath, encoding='latin1')
         except (FileNotFoundError, pd.errors.EmptyDataError):
             knowledgeBase = pd.DataFrame(columns=[
-                'Dataset_Name', 'numberofFeatres', 'logofFeatures', 'numberofInstances', 'logofInstances', 'numberofClasses',
+                'Dataset_Name', 'numberofFeatres', 'logofFeatures', 'numberofInstances', 'logofInstances',
+                'numberofClasses',
                 'numberofNumericalFeatures', 'numberofCategoricalFeatures', 'ratio', 'entropy', 'classprobmax',
                 'classprobmin', 'classprobmean', 'classprobstd', 'symbolsmean', 'symbolssum', 'symbolsstd',
                 'skewnessmin', 'skewnessmax', 'skewnessmean', 'skewnessstd', 'kurtosismin', 'kurtosismax',
@@ -139,15 +143,13 @@ class metafeatureExtraction:
         knowledgeBase.to_csv(self.KBPath, index=False, encoding='latin1')
 
 
-def process_folder(Folder_path):
+# This was for extracting the meta feature of our DB , won't be used again
+def process_folder(Folder_path, KBPath):
     for filename in os.listdir(Folder_path):
         if filename.endswith('.csv'):
             file_path = os.path.join(Folder_path, filename)
             df = pd.read_csv(file_path, encoding='latin1')
             dataset_name = os.path.splitext(filename)[0]
-            meta_extractor = metafeatureExtraction(df, dataset_name)
-            meta_extractor.addToKnowledgeBase()
-
-
-folder_path = r"C:\Users\Alaa\Desktop\Auto_ML_Project\non-sequential-preprocessing_Scripts\similaritySearch\Regression data\Regression"
-process_folder(folder_path)
+            meta_extractor = metafeatureExtraction(df, dataset_name, KBPath)
+            meta_features = meta_extractor.getMetaFeatures()
+            meta_extractor.addToKnowledgeBase(meta_features)
