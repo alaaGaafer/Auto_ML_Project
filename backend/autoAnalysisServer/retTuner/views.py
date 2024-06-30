@@ -2,6 +2,7 @@ from django.http import JsonResponse
 from django.views.decorators.csrf import csrf_exempt
 import json
 from .models import usersData
+import pandas as pd
 
 
 # Create your views here.
@@ -47,3 +48,25 @@ def inputvalidation(request):
 
     # Add your logic here for other HTTP methods or return a response
     return JsonResponse(parameters)
+@csrf_exempt
+def notify(request):
+    if request.method == 'POST':
+
+        uploaded_file = request.FILES['dataset']
+        file_name = uploaded_file.name
+        file=pd.read_csv(uploaded_file)
+        print(file.head())
+
+        response_variable = request.POST.get('responseVariable')
+        is_time_series = request.POST.get('isTimeSeries')
+
+        print('File name:', file_name)
+        print('Response Variable:', response_variable)
+        print('Is Time Series:', is_time_series)
+
+
+
+        return JsonResponse({'status': 'success', 'fileName': file_name})
+    else:
+        return JsonResponse({'status': 'fail', 'message': 'Only POST method is allowed.'}, status=405)
+
