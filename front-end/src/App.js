@@ -11,6 +11,7 @@ import Layout from './Layout/Layout';
 import Error from './Components/Error/Error';
 import Option from './Components/Options/Options';
 import { DataContextprovider } from './Context/Context';
+import UserProfile from './Components/UserProfile/UserProfile';
 
 function App() {
 
@@ -25,7 +26,9 @@ function App() {
         {path:'/about', element:<About/>},
         {path:'/getmodel', element:<GetModel/>},
         {path:'/option',element:<Option/>},
+        {path:'/userprofile',element:<UserProfile/>},
         {path:'*', element:<Error/>},
+
       ]},
     ]
   )

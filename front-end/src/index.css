@@ -186,3 +186,54 @@ nav .nav-item .active{
   background-size: cover;
 }
 
+
+/*#profile h2, p {
+  color: #fff;
+}
+
+.btn-outline-secondary {
+  border-color: #fff;
+  color: #fff;
+}*/
+#profile {
+  background-color: #f8f9fa;
+  min-height: 100vh;
+}
+
+#profile .container {
+  background-color: #ffffff;
+  border-radius: 0.5rem;
+  box-shadow: 0 0.5rem 1rem rgba(0, 0, 0, 0.1);
+}
+
+#profile .rounded-circle {
+  border: 5px solid #dc3545;
+}
+
+#profile .btn-danger {
+  background-color: #dc3545;
+  border: none;
+}
+
+#profile .btn-outline-secondary {
+  border-color: #dc3545;
+  color: #dc3545;
+}
+
+#profile .btn-outline-secondary:hover {
+  background-color: #dc3545;
+  color: #ffffff;
+}
+
+#profile .post-content {
+  background-color: #e9ecef;
+  padding: 1rem;
+  border-radius: 0.25rem;
+  box-shadow: 0 0.125rem 0.25rem rgba(0, 0, 0, 0.075);
+}
+
+#profile .post-date {
+  margin-bottom: 0.5rem; 
+  font-size: 0.83rem; 
+  color: #6c757d;
+}
