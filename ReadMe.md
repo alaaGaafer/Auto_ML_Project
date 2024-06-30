@@ -16,6 +16,7 @@
 - add time series to best models (assem and alaa)
 - complete the database (nada and zeina)
 - connect front end with back end to (all team)
+- the returned object should be serializable (alaa)
 
 # models
 

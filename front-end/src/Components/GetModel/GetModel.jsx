@@ -1,6 +1,7 @@
 import React, { useContext, useState } from "react";
 // import Options from '../Options/Options';
 import { Link, useHistory } from "react-router-dom";
+import { useNavigate } from "react-router-dom";
 import { dataContext } from "../../Context/Context";
 
 export default function GetModel() {
@@ -9,6 +10,7 @@ export default function GetModel() {
   const [responseVariable, setResponseVariable] = useState("");
   const [isTimeSeries, setIsTimeSeries] = useState(false);
   const { setShareFile } = useContext(dataContext);
+  const navigate = useNavigate();
   useContext(dataContext);
   const handleDatasetChange = (event) => {
     const file = event.target.files[0];
@@ -70,6 +72,9 @@ export default function GetModel() {
       }
 
       const result = await response.json();
+      if (result.status === "success") {
+        navigate("/option");
+      }
       console.log("Server response:", result);
       // Handle the server response here
     } catch (error) {
