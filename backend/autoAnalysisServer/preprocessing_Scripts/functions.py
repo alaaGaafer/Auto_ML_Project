@@ -4,11 +4,9 @@ from pandas.api.types import is_object_dtype, is_integer_dtype, is_float_dtype
 from pandas.core.dtypes.common import is_datetime64_any_dtype
 from sklearn.preprocessing import StandardScaler, LabelEncoder, MinMaxScaler
 from sklearn.decomposition import PCA
-from sklearn.ensemble import RandomForestClassifier
-from sklearn.feature_selection import SelectFromModel
-import matplotlib.pyplot as plt
-from imblearn.over_sampling import RandomOverSampler
+from imblearn.over_sampling import RandomOverSampler, SMOTE
 from imblearn.under_sampling import RandomUnderSampler
+import matplotlib.pyplot as plt
 
 
 class RemoveIDColumn:
@@ -21,53 +19,28 @@ class RemoveIDColumn:
     """
 
     @classmethod
-    def remove_id_column(cls, df):
-        """
-        Identifies and removes potential ID columns based on column names or high cardinality.
-
-        Parameters:
-            - df: pandas DataFrame
-
-        Returns:
-            - df: pandas DataFrame with removed ID columns
-        """
-
-        # Check for columns containing "id" or "ID"
-        id_columns = [col for col in df.columns if 'id' in col.lower()]
-
-        # Remove identified ID columns
-        if id_columns:
-            df = df.drop(columns=id_columns)
-            print(f"Removed ID column(s): {', '.join(id_columns)}")
-        df = cls.remove_high_cardinality_columns(df)
-
-        return df
-
-    @classmethod
-    def remove_high_cardinality_columns(cls, df, threshold=0.75):
+    def remove_high_cardinality_columns(cls, df):
         """
         Identifies and removes potential ID columns based on high cardinality.
 
         Parameters:
             - df: pandas DataFrame
-            - threshold: Threshold for considering a column as high cardinality (default: 0.75)
-
         Returns:
             - df: pandas DataFrame with removed high cardinality columns
         """
-
+        messages = []
         # Select only categorical columns
         categorical_columns = df.select_dtypes(include='object').columns
 
         for col in categorical_columns:
             unique_ratio = df[col].nunique() / len(df)
 
-            # If the ratio is above the threshold, consider it for removal
-            if unique_ratio > threshold:
+            # If the ratio is 100% unique , consider it for removal
+            if unique_ratio == 1.0:
                 df = df.drop(columns=col)
-                print(f"Removed high cardinality column: {col}")
+                messages.append( f"Removed high cardinality column: {col}")
 
-        return df
+        return df, messages
 
 
 class ConvertToDatetime:
@@ -88,6 +61,17 @@ class ConvertToDatetime:
         Returns:
             - df: pandas DataFrame with converted datetime columns
         """
+        # date_formats = [
+        #     "%Y-%m-%dT%H:%M:%S",
+        #     "%Y-%m-%dT%H:%M:%SZ",
+        #     "%B %d, %Y %I:%M:%S %p",
+        #     "%m/%d/%Y %H:%M",
+        #     "%A, %B %d, %Y %H:%M",
+        #     "%b %d, %Y %H:%M",
+        #     "%d/%m/%Y %H:%M",
+        #     "%d-%b-%Y %H:%M",
+        #     "%Y-%m-%dT%H:%M:%S.%f"
+        # ]
 
         # Get columns with object dtype
         object_cols = df.select_dtypes(include=['object']).columns
@@ -130,13 +114,37 @@ class MissingValues:
 
         nulls_dict = {}
 
-        for col, count in columns_with_nulls.items():
-            nulls_dict[col] = {
-                "type": df[col].dtype,
-                "number_of_nulls": count,
-                "locations_of_nulls": df.index[df[col].isnull()].tolist()
-            }
+        if columns_with_nulls.empty:
+            return {"No null values detected": None}
+        else:
+            for col, count in columns_with_nulls.items():
+                nulls_dict[col] = {
+                    "type": df[col].dtype,
+                    "number_of_nulls": count,
+                    "locations_of_nulls": df.index[df[col].isnull()].tolist()
+                }
         return nulls_dict
+
+    def del_high_null_cols(self, df):
+        messages = []
+        null_info = df.isnull().sum()
+        columns_with_nulls = null_info[null_info > 0].index
+
+        for col in columns_with_nulls:
+            null_percentage = df[col].isnull().mean() * 100
+            if null_percentage > 75:
+                messages.append(
+                    f"Column '{col}' has too many null values ({null_percentage:.2f}%). Dropping the column.")
+                df.drop(columns=[col], inplace=True)
+                continue
+
+            if is_datetime64_any_dtype(df[col]):
+                df[col], status, date_message = self.fill_datetime_na(df[col])
+                messages.append(date_message)
+                if status == "failed":
+                    df[col].dropna(inplace=True)
+
+        return df, messages
 
     def handle_nan(self, df, fillNA_dict):
         """
@@ -152,12 +160,7 @@ class MissingValues:
         for col, method in fillNA_dict.items():
             if not df[col].isnull().any():
                 continue
-            # Check if too many null values
-            null_percentage = df[col].isnull().mean() * 100
-            if null_percentage > 75:
-                print(f"Column '{col}' has too many null values ({null_percentage:.2f}%). Dropping the column.")
-                df.drop(columns=[col], inplace=True)
-                continue
+
             if method == 'auto':
                 if is_float_dtype(df[col]):
                     df[col].fillna(df[col].median(), inplace=True)
@@ -166,10 +169,10 @@ class MissingValues:
                     if not mode_values.empty:
                         chosen_mode = mode_values.iloc[0].split()[0]
                         df[col].fillna(chosen_mode, inplace=True)
-                elif is_datetime64_any_dtype(df[col]):
-                    df[col], status = self.fill_datetime_na(df[col])
-                    if status == "failed":
-                        df[col].dropna(inplace=True)
+                # elif is_datetime64_any_dtype(df[col]):
+                #     df[col], status = self.fill_datetime_na(df[col])
+                #     if status == "failed":
+                #         df[col].dropna(inplace=True)
             elif method == 'median':
                 if is_float_dtype(df[col]) or is_integer_dtype(df[col]):
                     df[col].fillna(df[col].median(), inplace=True)
@@ -253,16 +256,15 @@ class MissingValues:
                     series_copy = series_copy.drop(added_indices)
 
                 else:
-                    print("Failed to detect a pattern. All nulls in the date column were dropped")
+                    message = "Failed to detect a pattern. All nulls in the date column were dropped"
                     status = "failed"
 
             else:
                 # If the max number of sequential non-null dates is not sufficient, drop the row
-                print("The Date column has too many nulls. Maybe you want to refill it manually and re-upload the data")
-                print("All nulls in the date column were dropped")
+                message = "The Date column has too many nulls. Maybe you want to refill it manually and re-upload the data", "All nulls in the date column were dropped"
                 status = "failed"
 
-        return series_copy, status
+        return series_copy, status, message
 
 
 class Duplicates:
@@ -308,6 +310,7 @@ class Outliers:
             - outlier_info
         """
         outlier_info = {}
+        cols_with_outliers = []
 
         for col in df.select_dtypes(include=['float64']).columns:
             z_scores = np.abs((df[col] - df[col].mean()) / df[col].std())
@@ -318,34 +321,50 @@ class Outliers:
                     'locations': df.index[outliers_mask].tolist(),
                     'status': 'Extreme'
                 }
+                cols_with_outliers.append(col)
             elif np.any((z_scores > 1) & (z_scores <= threshold)):
                 outlier_info[col] = {
                     'locations': df.index[z_scores > 1].tolist(),
                     'status': 'Mild'
                 }
-        print("\nOutliers Information:")
-        for col, info in outlier_info.items():
-            print(f"Column: {col}")
-            print(f"Outlier Locations: {info['locations']}")
-            print(f"status: {info['status']}")
-            print("\n")
+                cols_with_outliers.append(col)
 
-        return outlier_info
+        # print("\nOutliers Information:")
+        # for col, info in outlier_info.items():
+        #     print(f"Column: {col}")
+        #     print(f"Outlier Locations: {info['locations']}")
+        #     print(f"Status: {info['status']}")
+        #     print("\n")
 
-    def handle_outliers(self, df, choices):
+        return outlier_info, cols_with_outliers
+
+    def handle_outliers(self, df, cols, choices):
         """
         Handle outliers in the data.
 
         Parameters:
             - df: pandas DataFrame
-            - choices: Dictionary with column names as keys, values as tuples (method, handle, threshold)
-                       where method can be 'z_score' or 'IQR', handle can be 'auto', 'delete', 'median', 'mean', and threshold is the outlier threshold.
+            - choices: A dict with 3 keys and their values (method, handle, threshold)where method can be
+            'z_score' or 'IQR', handle can be 'auto', 'delete', 'median', 'mean', and threshold is the outlier threshold.
 
         Returns:
             - df: pandas DataFrame with outliers handled
         """
         # in the website threshold will be a default of 1.5 in case of IQR and 3 in case of z-score if the user doesn't enter another one.
-        for col, (method, handle, threshold) in choices.items():
+        method = choices[0]
+        handle = choices[1]
+        threshold = choices[2]
+
+        if method not in ['z_score', 'IQR']:
+            raise ValueError("Method must be either 'z_score' or 'IQR'")
+        if handle not in ['auto', 'delete', 'median', 'mean']:
+            raise ValueError("Handle must be one of 'auto', 'delete', 'median', 'mean'")
+
+        # Setting default thresholds if not provided
+        if threshold is None:
+            threshold = 1.5 if method == 'IQR' else 3
+
+        for col in cols:
             outliers_mask = None
             if method == 'z_score':
                 z_scores = np.abs((df[col] - df[col].mean()) / df[col].std())
@@ -371,15 +390,15 @@ class Outliers:
 
 class HandlingImbalanceClasses:
     """
-        Class for handling class imbalance in a dataset.
+    Class for handling class imbalance in a dataset.
 
-        Methods:
-            detect_class_imbalance(self, df, target_column):
-            Function to detect class imbalance anf informing the user .
-            handle_class_imbalance(self, df, target_column, instruction='auto'):
-                Function to handle class imbalance based on user instruction.
+    Methods:
+        detect_class_imbalance(self, df, target_column):
+            Function to detect class imbalance and inform the user.
+        handle_class_imbalance(self, df, target_column, instruction='auto'):
+            Function to handle class imbalance based on user instruction.
+    """
 
-        """
     def detect_class_imbalance(self, df, target_column):
         """
         Function to detect class imbalance in a dataset.
@@ -390,6 +409,7 @@ class HandlingImbalanceClasses:
 
         Returns:
             str: Information about class imbalance in the dataset.
+            bool: Whether class imbalance is detected.
         """
         class_distribution = df[target_column].value_counts()
         imbalance_info = "Class Imbalance Information:\n"
@@ -419,9 +439,6 @@ class HandlingImbalanceClasses:
         Returns:
             DataFrame: Resampled dataset.
         """
-        class_distribution = df[target_column].value_counts()
-        minority_class = class_distribution.idxmin()
-        majority_class = class_distribution.idxmax()
 
         if instruction == 'oversampling':
             oversampling = RandomOverSampler(sampling_strategy='minority')
@@ -437,22 +454,11 @@ class HandlingImbalanceClasses:
             resampled_data = pd.concat([pd.DataFrame(X_resampled), pd.DataFrame(y_resampled, columns=[target_column])],
                                        axis=1)
             return resampled_data
-
         elif instruction == 'auto':
-            if class_distribution[minority_class] < 0.05 * len(df):
-                oversampling = RandomOverSampler(sampling_strategy='minority')
-                X_resampled, y_resampled = oversampling.fit_resample(df.drop(columns=[target_column]),
-                                                                     df[target_column])
-                resampled_data = pd.concat(
-                    [pd.DataFrame(X_resampled), pd.DataFrame(y_resampled, columns=[target_column])], axis=1)
-                return resampled_data
-            elif class_distribution[majority_class] > 0.95 * len(df):
-                undersampling = RandomUnderSampler(sampling_strategy='majority')
-                X_resampled, y_resampled = undersampling.fit_resample(df.drop(columns=[target_column]),
-                                                                     df[target_column])
-                resampled_data = pd.concat(
-                    [pd.DataFrame(X_resampled), pd.DataFrame(y_resampled, columns=[target_column])], axis=1)
-                return resampled_data
+            smote = SMOTE()
+            X_resampled, y_resampled = smote.fit_resample(df.drop(columns=[target_column]), df[target_column])
+            resampled_data = pd.concat([pd.DataFrame(X_resampled), pd.DataFrame(y_resampled, columns=[target_column])],axis=1)
+            return resampled_data
 
         else:
             return df
@@ -466,7 +472,7 @@ class DataNormalization:
         - normalize_data(df, method): Normalizes numeric data based on the specified method either with standard scaler(auto) or Minmax scaler.
     """
 
-    def normalize_data(self, df, method):
+    def normalize_data(self, df, method='auto'):
         """
         Normalize numeric data in the DataFrame.
 
@@ -495,27 +501,6 @@ class EncodeCategorical:
         Methods:
         - Encode(df, encoding_dict): Encodes categorical columns based on the specified encoding methods or auto encoded if not specified.
     """
-
-    def categorical_columns(self, df):
-        """
-                Identify categorical columns in the DataFrame.
-
-                Parameters:
-                    - df: pandas DataFrame
-
-                Returns:
-                    - result_dict: a dictionary where keys are categorical column names, and values are set to 'auto'
-        """
-        # Identify categorical columns
-        categorical_columns = df.select_dtypes(include=['object']).columns
-
-        # Create a dictionary to store the columns with value 'auto'
-        result_dict = {}
-
-        for col in categorical_columns:
-            result_dict[col] = 'auto'
-
-        return result_dict
 
     def Encode(self, df, encoding_dict):
         """

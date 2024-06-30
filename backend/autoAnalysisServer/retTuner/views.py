@@ -3,6 +3,8 @@ from django.views.decorators.csrf import csrf_exempt
 import json
 from .models import usersData
 import pandas as pd
+#import from main function called detection
+from preprocessing_Scripts.main import Detections
 
 
 # Create your views here.
@@ -54,19 +56,39 @@ def notify(request):
 
         uploaded_file = request.FILES['dataset']
         file_name = uploaded_file.name
-        file=pd.read_csv(uploaded_file)
-        print(file.head())
+        toprocesseddf=pd.read_csv(uploaded_file)
 
         response_variable = request.POST.get('responseVariable')
         is_time_series = request.POST.get('isTimeSeries')
 
-        print('File name:', file_name)
-        print('Response Variable:', response_variable)
-        print('Is Time Series:', is_time_series)
+        df_copy, nulls_dict, outlier_info, duplicates, imbalance_info, numerical_columns, low_variance_columns, low_variance_info, categorical_columns, deletion_messages, carednality_messages = Detections(toprocesseddf, response_variable)
+        def convert_float64_dtype(obj):
+            if isinstance(obj, pd.Float64Dtype):
+                return float('NaN')  # Convert to NaN or appropriate value
+            return obj
+
+        def convert_dict_to_serializable(d):
+            serializable_dict = {}
+            for key, value in d.items():
+                serializable_value = {
+                    'type': str(value['type']),  # Convert dtype to string
+                    'number_of_nulls': value['number_of_nulls'],
+                    'locations_of_nulls': value['locations_of_nulls']
+                }
+                serializable_dict[key] = serializable_value
+            return serializable_dict
+
+        serializable_nulls_dict = convert_dict_to_serializable(nulls_dict)
+        
+        print('Nulls dict:', nulls_dict)
+        # serialized_nulls_dict = json.dumps(nulls_dict, default=convert_float64_dtype)
+        response_data= {'status': 'success', 'nulls_dict': serializable_nulls_dict} 
+
+        # response_data_serializable = json.dumps(response_data, default=convert_float64_dtype)
 
 
 
-        return JsonResponse({'status': 'success', 'fileName': file_name})
+        return JsonResponse(response_data, safe=False)
     else:
         return JsonResponse({'status': 'fail', 'message': 'Only POST method is allowed.'}, status=405)
 

@@ -1,199 +1,204 @@
-from functions import *
+from .functions import *
+from .metaFeatureExtraction import *
+from .sim_function import *
+from enum import Enum
+
+
+class ProblemType(Enum):
+    REGRESSION = "Regression"
+    CLASSIFICATION = "Classification"
+    TIME_SERIES = "Time series"
+
+
+def split_dataset(file_path, y_column, pred_data_path=None):
+    if pred_data_path:
+        train_data = pd.read_csv(file_path)
+        pred_data = pd.read_csv(pred_data_path)
+    else:
+        data = pd.read_csv(file_path)
+        train_data = data.dropna(subset=[y_column])
+        pred_data = data[data[y_column].isna()]
+
+    return train_data, pred_data
+
+
+def Detections(df, y_column, date_col=None):
+    # Check file extension
+    # file_extension = file_path.split('.')[-1]
+    # if file_extension == 'csv':
+    #     df = pd.read_csv(file_path)
+    # elif file_extension in ['xls', 'xlsx']:
+    #     df = pd.read_excel(file_path)
+    # else:
+    #     raise ValueError("Unsupported file format")
+
+
+    df_copy = df.copy()
+
+    # Remove ID column and store categorical and numerical columns
+    # those two messages are lists
+    df_copy, carednality_messages = RemoveIDColumn.remove_high_cardinality_columns(df_copy)
+    df_copy, deletion_messages = MissingValues().del_high_null_cols(df_copy)
+    categorical_columns = df_copy.select_dtypes(include=['object']).columns.tolist()
+    numerical_columns = df_copy.select_dtypes(include=['number']).columns.tolist()
+
+    if date_col:
+        df_copy[date_col] = pd.to_datetime(df_copy[date_col])
+
+    nulls_dict = MissingValues().detect_nulls(df_copy)
+    outlier_info, cols_with_outliers = Outliers().detect_outliers(df_copy)
+    duplicates = df.duplicated().any()
+    imbalance_info, imbalance_detected = HandlingImbalanceClasses().detect_class_imbalance(df_copy, y_column)
+    df_without_y = df_copy.drop(columns=[y_column])
+    low_variance_columns, low_variance_info = HandlingColinearity().detect_low_variance(df_without_y)
+
+    return df_copy, nulls_dict, outlier_info, duplicates, imbalance_info, numerical_columns, low_variance_columns, low_variance_info, categorical_columns, deletion_messages, carednality_messages
+
+
+def extract_and_search_features(df_copy, file_path, problem, y_column):
+    knowledge_base_path = {
+        ProblemType.REGRESSION.value: "Knowledge bases\\new_knowledgeBaseReg.csv",
+        ProblemType.CLASSIFICATION.value: "Knowledge bases\\new_knowledgeBaseCls.csv",
+        ProblemType.TIME_SERIES.value: "Knowledge bases\\knowledgeBaseTime.csv"
+    }.get(problem)
+
+    dataset_name = file_path.split('.')[0]
+    meta_extractor = metafeatureExtraction(df_copy, dataset_name, knowledge_base_path, y_column)
+    meta_features = meta_extractor.getMetaFeatures()
+    meta_features_numerical = meta_features[1:]
+    print("meta_features: ", meta_features)
+
+    similarity_checker = MetaFeatureSimilarity(meta_features_numerical, knowledge_base_path)
+    best_models, dataset_names = similarity_checker.get_best_models()
+    best_models = list(set(best_models))
+    print("best_models", best_models, "dataset_names", dataset_names)
+    # cash &best model
+    # add best model to metafeatures
+    # meta_extractor.addToKnowledgeBase(meta_features)
+
+    return meta_features, best_models
 
 
 class AutoClean:
 
-    @staticmethod
-    def clean_data(File_path, Y_column):
-        # Read CSV file
-        df = pd.read_csv(File_path)
-        print(df)
-        df = df.reset_index(drop=True)
-        df_copy = df.copy()
+    def Handling_calls(self, file_path, df_copy, problem, y_column, fill_na_dict, outliers_methods_input,
+                       imb_instruction, Norm_method, lowvariance_actions,
+                       encoding_dict, reduce, auto_reduce, num_components_to_keep, date_col=None):
 
-        # Convert to datetime
-        df_copy = AutoClean.convert_to_datetime(df_copy)
+        df_copy = df_copy.reset_index(drop=True)
+        # making the y column the last col for the meta_extraction
+        # y_column_content = df_copy[y_column]
+        # df_copy.drop(y_column, axis=1, inplace=True)
+        # df_copy[y_column] = y_column_content
 
-        df_without_y = df_copy.drop(columns=[Y_column])
+        if problem == ProblemType.TIME_SERIES.value:
+            df_copy.rename(columns={date_col: 'ds', y_column: 'y'}, inplace=True)
 
-        df_without_y = RemoveIDColumn.remove_id_column(df_without_y)
-        df_without_y[Y_column] = df_copy[Y_column]
+        # Handle missing values, duplicates, outliers, normalization, and colinearity
+        df_copy = MissingValues().handle_nan(df_copy, fill_na_dict)
+        df_copy = Duplicates().handle_dub(df_copy)
+        outlier_info, cols_with_outliers = Outliers().detect_outliers(df_copy)
+        df_copy = Outliers().handle_outliers(df_copy, cols_with_outliers, outliers_methods_input)
+        df_copy = DataNormalization().normalize_data(df_copy, Norm_method)
+        df_without_y = df_copy.drop(columns=[y_column])
+        df_without_y = HandlingColinearity().handle_low_variance(df_without_y, lowvariance_actions)
+        df_without_y, handling_info = HandlingColinearity().handling_colinearity(df_without_y)
+        df_without_y[y_column] = df_copy[y_column]
         df_copy = df_without_y.copy()
 
-        # Handle missing values , next line will be a notification in front-end
-        nulls_dict = MissingValues().detect_nulls(df_copy)
+        # Extract features and perform similarity search
+        # pass train instead of df_copy
+        meta_features, best_models = extract_and_search_features(df_copy, file_path, problem, y_column)
 
-        if nulls_dict:
-            # next line should be called from the front-end after entering the user choices
-            df_copy = AutoClean.handle_missing_values(df_copy, nulls_dict)
-            print(df_copy.head(20))
+        # Encode categorical features and reduce dimensions if needed
+        df_copy = EncodeCategorical().Encode(df_copy, encoding_dict)
+        df_copy = HandlingImbalanceClasses().handle_class_imbalance(df_copy, y_column, imb_instruction)
 
-        # Handle duplicates, notify the user
-        df_copy = AutoClean.handle_duplicates(df_copy)
+        if reduce == 'True':
+            explainedVariability, explanation_list = HandlingReduction().explainedVariability(
+                df_copy.select_dtypes(include=['number']))
+            if auto_reduce == 'True':
+                num_components_to_keep = HandlingReduction().NumberOfComponents(
+                    df_copy.select_dtypes(include=['number']), explainedVariability)
+            df_copy = self.featureReduction(df_copy, num_components_to_keep)
+        # train the best model on data
+        # return model name & predictions & hyperparameters
 
-        # Detect outliers and inform the user
-        outlier_info = Outliers().detect_outliers(df_copy)
-        if outlier_info:
-            # next line should be called from the front-end after entering the user choices
-            df_copy = AutoClean.handle_outliers(df_copy, outlier_info)
-
-        # Handling Imbalance Classes
-        imbalance_info, imbalance_detected = HandlingImbalanceClasses().detect_class_imbalance(df_copy, Y_column)
-        print("imbalance_info: ", imbalance_info)
-        if imbalance_detected:
-            instruction = input("Choose 'auto', 'oversampling', or 'undersampling': ")
-            df_copy = HandlingImbalanceClasses().handle_class_imbalance(df_copy, Y_column, instruction)
-            print("After handling imbalance", df_copy)
-
-        # Normalize numerical columns
-        has_numerical_columns = any(pd.api.types.is_numeric_dtype(df[col]) for col in df.columns)
-        if has_numerical_columns:
-            method = input("Choose 'auto', 'standard' for StandardScaler, or 'MinMax' for MinMaxScaler: ")
-            df_copy = DataNormalization().normalize_data(df_copy, method)
-            # Handle low variance columns, detect it and inform the user
-            df_without_y = df_copy.drop(columns=[Y_column])
-            low_variance_columns, low_variance_info = HandlingColinearity().detect_low_variance(df_without_y)
-            actions = {c: "auto" for c in low_variance_columns}
-            # next line should be called from the front-end after entering the user choices
-            df_without_y = HandlingColinearity().handle_low_variance(df_without_y, actions)
-            # Detect and handle co-linearity
-            df_without_y, handling_info = HandlingColinearity().handling_colinearity(df_without_y)
-            df_without_y[Y_column] = df_copy[Y_column]
-            df_copy = df_without_y.copy()
-            print("df_copy", df_copy)
-
-        has_categorical_columns = any(pd.api.types.is_categorical_dtype(df[col]) for col in df.columns)
-        if has_categorical_columns:
-            # Encode categorical variables
-            encoding_dict = EncodeCategorical().categorical_columns(df_copy)
-            df_copy = AutoClean.encode_categorical(df_copy, encoding_dict)
-
-        if has_numerical_columns:
-            # Reduce dimensions
-            df_copy = AutoClean.reduceDimensions(df_copy)
-
-        print("Final data after cleaning: ")
-        print(df_copy)
+        return df_copy
 
     @staticmethod
-    def convert_to_datetime(df):
-        print("info before", df.info())
-        df = ConvertToDatetime().convert(df)
-        print("info after", df.info())
-        return df
-
-    # Taking input from user , will be taken from the front end later
-    @staticmethod
-    def get_fill_method_input(df, col_name):
-        col_type = df.dtypes[col_name]
-
-        if pd.api.types.is_numeric_dtype(col_type):  # Check if the column is numeric (int or float)
-            fill_method = input(
-                f"Enter method for handling NaN in '{col_name}' (mean, median, mode, delete, auto): ").lower()
-            valid_methods = ["mean", "median", "mode", "delete", "auto"]
-        elif pd.api.types.is_object_dtype(col_type):  # Check if the column is an object
-            fill_method = input(f"Enter method for handling NaN in '{col_name}' (mode, delete,auto): ").lower()
-            valid_methods = ["mode", "delete", "auto"]
-        else:
-            fill_method = "auto"  # For date columns, assign it as "auto"
-            valid_methods = ["auto"]
-
-        while fill_method not in valid_methods:
-            print(f"Invalid input. Please enter one of: {', '.join(valid_methods)}")
-            fill_method = input(f"Enter method for handling NaN in '{col_name}': ").lower()
-
-        return fill_method
-
-    @staticmethod
-    def handle_missing_values(df, nulls_dict):
-        print('nan before: ', df.isna().sum())
-        fillNA_dict = {}
-        for col in nulls_dict.keys():
-            fill_method = AutoClean.get_fill_method_input(df, col)
-            fillNA_dict[col] = fill_method
-
-        print("fillNA_dict", fillNA_dict)
-
-        df = MissingValues().handle_nan(df, fillNA_dict)
-        print('nan after: ', df.isna().sum())
-        return df
-
-    @staticmethod
-    def handle_duplicates(df):
-        print('dub before: ', df.duplicated().sum())
-        df = Duplicates().handle_dub(df)
-        print('dub after: ', df.duplicated().sum())
-        return df
-
-    # Taking input from user , will be taken from the front-end later
-    @staticmethod
-    def get_outliers_handling_input(outlier_info):
-        methods_input = {}
-        for col in outlier_info.keys():
-            print(f"Handling options for '{col}':")
-            print("1. Method: z_score, Handle: auto, Threshold: 3")
-            print("2. Method: IQR, Handle: delete, Threshold: 1.5")
-            user_choice = input("Enter your choice (1 or 2): ")
-
-            if user_choice == '1':
-                methods_input[col] = ('z_score', 'auto', 3)
-            elif user_choice == '2':
-                methods_input[col] = ('IQR', 'delete', 1.5)
-            else:
-                print("Invalid choice. Using default handling (Method: z_score, Handle: auto, Threshold: 3).")
-                methods_input[col] = ('z_score', 'auto', 3)
-        return methods_input
-
-    @staticmethod
-    def handle_outliers(df, outlier_info):
-        methods_input = AutoClean.get_outliers_handling_input(outlier_info)
-        df = Outliers().handle_outliers(df, methods_input)
-        return df
-
-    @staticmethod
-    def encode_categorical(df, encoding_dict):
-        return EncodeCategorical().Encode(df, encoding_dict)
-
-    @staticmethod
-    def reduceDimensions(df):
+    def featureReduction(df, Num_components_to_keep):
         numerical_columns = df.select_dtypes(include=['number']).columns
         numericalDf = df[numerical_columns]
-        #####
-        print("")
-        print("////////////////////////Features Reduction////////////////////////")
-
-        print(f"The number of numerical columns is: {len(numerical_columns)}")
-        print("Do you want to reduce the number of dimensions? (yes/no)")
-        choice = input().lower()
-        if choice == "yes" or choice == "y":
-            explainedVariability, explanation_list = HandlingReduction().explainedVariability(numericalDf)
-            for explanation in explanation_list:
-                print(explanation)
-            print("Do you want to handle the reduction automatically? (yes/no)")
-            choice = input().lower()
-            if choice == "yes" or choice == "y":
-                num_components_to_keep = HandlingReduction().NumberOfComponents(numericalDf, explainedVariability)
-                reducedFeatures = HandlingReduction().feature_reduction(numericalDf, num_components_to_keep)
-            else:
-                choice = int(input("Enter the number of components you want to keep: "))
-                reducedFeatures = HandlingReduction().feature_reduction(numericalDf, choice)
-        else:
-            print("The number of dimensions will not be reduced")
-            return df
-        # print('the reduced features are: ',reducedFeatures)
+        reducedFeatures = HandlingReduction().feature_reduction(numericalDf, Num_components_to_keep)
         non_numerical_columns = df.select_dtypes(exclude=['number']).columns
-        non_numerical_df = df[non_numerical_columns]
-        non_numerical_df.reset_index(drop=True, inplace=True)
-        # print("the non-numerical columns are: ",non_numerical_df)
-        # print("the reduced features are: ",reducedFeatures)
+        non_numerical_df = df[non_numerical_columns].reset_index(drop=True)
         concatenated_features = pd.concat([non_numerical_df, reducedFeatures], axis=1)
         return concatenated_features
 
 
-if __name__ == "__main__":
-    # file_path = "data.csv"
-    file_path = "train.csv"
-    # y_column = "Gender"
-    y_column = "Survived"
+# this part is just for testing ( will be removed)
 
-    AutoClean.clean_data(file_path, y_column)
+
+def user_interaction():
+    file_path = "train.csv"
+    y_column = 'Survived'
+
+    # Step 2: Call the Detections function to get detection results
+    try:
+        df_copy, nulls_dict, outlier_info, duplicates, imbalance_info, numerical_columns, low_variance_columns, \
+        low_variance_info, categorical_columns, deletion_messages, carednality_messages = Detections(file_path,
+                                                                                                     y_column)
+
+        print("Detection Results:")
+        print(f"Nulls Dictionary: {nulls_dict}")
+        print(f"Outlier Info: {outlier_info}")
+        print(f"Duplicates Detected: {duplicates}")
+        print(f"Imbalance Info: {imbalance_info}")
+        print(f"Numerical Columns: {numerical_columns}")
+        print(f"Low Variance Columns: {low_variance_columns}")
+        print(f"Categorical Columns: {categorical_columns}")
+        print(f"deletion_messages: {deletion_messages}")
+        print(f"deletion_messages: {carednality_messages}")
+
+        problem_type = ProblemType.CLASSIFICATION.value
+
+        # Handling missing values
+        fill_na_dict = {}
+        for col in nulls_dict.keys():
+            fill_na_dict[col] = 'auto'
+
+        # Handling outliers
+        outliers_method_input = ('z_score', 'auto', 3)
+
+        imb_instruction = "auto"
+        Norm_method = "auto"
+        low_actions = {}
+        encoding_dict = {}
+
+        for col in categorical_columns:
+            encoding_dict[col] = 'auto'
+        for col in low_variance_columns:
+            encoding_dict[col] = 'auto'
+
+        reduce = 'True'
+        auto_reduce = 'True'
+        num_components_to_keep = 3
+
+        auto_clean_instance = AutoClean()
+        processed_data = auto_clean_instance.Handling_calls(file_path, df_copy, problem_type, y_column, fill_na_dict,
+                                                            outliers_method_input, imb_instruction, Norm_method,
+                                                            low_actions, encoding_dict, reduce, auto_reduce,
+                                                            num_components_to_keep)
+
+        print("Data preprocessing and handling completed successfully.")
+        return processed_data
+
+    except ValueError as ve:
+        print(f"Error occurred: {ve}")
+        return None
+
+
+# Example usage:
+if __name__ == "__main__":
+    user_interaction()
