@@ -1,5 +1,5 @@
 import React, { useContext, useState } from "react";
-// import Options from '../Options/Options';
+// import Options from "../Options/Options";
 import { Link, useHistory } from "react-router-dom";
 import { useNavigate } from "react-router-dom";
 import { dataContext } from "../../Context/Context";
@@ -74,7 +74,11 @@ export default function GetModel() {
       const result = await response.json();
       if (result.status === "success") {
         setShareFile(result);
-        navigate("/option");
+        const modelData = {
+          responseVariable: responseVariable,
+          isTimeSeries: isTimeSeries,
+        };
+        navigate("/option", { state: { modelData } });
       }
       // console.log("Server response:", result);
       // Handle the server response here

@@ -78,6 +78,29 @@ def notify(request):
     else:
         return JsonResponse({'status': 'fail', 'message': 'Only POST method is allowed.'}, status=405)
 
+@csrf_exempt
+def preprocessingAll(request):
+    if request.method == 'POST':
+        print ("the request is",request)
+        uploaded_file = request.POST.get('dataset')
+        data_list = json.loads(uploaded_file)
+        df=pd.DataFrame(data_list)
+        print("the head is: ", df.head())
+        istime_series = request.POST.get('isTimeSeries')
+        response_variable = request.POST.get('responseVariable')
+        print("is time series",istime_series)
+        print("response variable",response_variable)
+        
+
+        # print("the uploaded file is",uploaded_file)
+        # df=pd.DataFrame(uploaded_file)
+        # print("the head is: ", df.head())
+        # print("the data set is",uploaded_file)
+        # toprecesseddf=pd.read_csv(uploaded_file)
+        # print(toprecesseddf.head())
+        # data = json.loads(request.body.decode('utf-8'))
+        # df = pd.read_json(data['df_copy_json'])
+        # print(df.head())
 
         # def convert_float64_dtype(obj):
         #     if isinstance(obj, pd.Float64Dtype):

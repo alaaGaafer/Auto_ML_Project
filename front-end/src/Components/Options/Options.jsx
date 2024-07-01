@@ -1,7 +1,8 @@
 import React, { useState, useEffect, useContext } from "react";
-// import GetModel from '../GetModel/GetModel';
+// import GetModel from "../GetModel/GetModel";
 import { dataContext } from "../../Context/Context";
 import axios from "axios";
+import { useLocation } from "react-router-dom";
 
 export default function Options({ dataset }) {
   const { ShareFile } = useContext(dataContext);
@@ -9,6 +10,12 @@ export default function Options({ dataset }) {
   const [handlingMethod, setHandlingMethod] = useState("");
   const [notificationMessage, setNotificationMessage] = useState("");
   const [showNotification, setShowNotification] = useState(false);
+  const location = useLocation();
+  const modelData = location.state?.modelData;
+  // console.log("modelData", modelData);
+
+  // console.log("istimeseries", istimeseries);
+  // console.log("problemtype", problemtype);
 
   const handleOptions = (event) => {
     const clickedOption = event.target.innerHTML;
@@ -53,6 +60,53 @@ export default function Options({ dataset }) {
     setTimeout(() => {
       setShowNotification(false);
     }, 5000);
+    //  send data to server
+
+    console.log(message);
+  };
+
+  const sendDatasetToServer = async () => {
+    const formData = new FormData();
+    let datasetjson = JSON.stringify(parsedJsonData);
+    formData.append("dataset", datasetjson);
+    formData.append("responseVariable", modelData.responseVariable);
+    formData.append("isTimeSeries", modelData.isTimeSeries);
+
+    try {
+      const response = await fetch(
+        "http://127.0.0.1:8000/retTuner/preprocessingAll",
+        {
+          method: "POST",
+          body: formData,
+        }
+      );
+
+      if (!response.ok) {
+        throw new Error("Network response was not ok");
+      }
+
+      const result = await response.json();
+      if (result.status === "success") {
+        // setShareFile(result);
+        // navigate("/option");
+        console.log("Server response:", result);
+      }
+      // console.log("Server response:", result);
+      // Handle the server response here
+    } catch (error) {
+      console.error("Error sending dataset to server:", error);
+    }
+  };
+  const handleFinalSubmit = () => {
+    const message = `Final Submit for: ${selectedOption}`;
+    setNotificationMessage(message);
+    setShowNotification(true);
+
+    setTimeout(() => {
+      setShowNotification(false);
+    }, 5000);
+    //  send data to server
+    sendDatasetToServer();
 
     console.log(message);
   };
@@ -343,10 +397,8 @@ export default function Options({ dataset }) {
                 <option>Over sampling</option>
                 <option>Under sampling</option>
               </select>
-            </div>
-            {selectedOption && (
               <button
-                onClick={handleSubmit}
+                onClick={handleFinalSubmit}
                 className="btn btn-danger mt-3 mb-1 d-block m-auto shadow-sm"
                 style={{
                   backgroundColor: "white",
@@ -354,9 +406,23 @@ export default function Options({ dataset }) {
                   fontSize: "20px",
                 }}
               >
-                Submit
+                Final Submit
               </button>
-            )}
+            </div>
+            {selectedOption &&
+              selectedOption !== "Handling imbalance class" && (
+                <button
+                  onClick={handleSubmit}
+                  className="btn btn-danger mt-3 mb-1 d-block m-auto shadow-sm"
+                  style={{
+                    backgroundColor: "white",
+                    color: "black",
+                    fontSize: "20px",
+                  }}
+                >
+                  Submit
+                </button>
+              )}
           </div>
         </div>
       </div>
