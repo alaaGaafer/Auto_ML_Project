@@ -14,6 +14,36 @@ export default function Options({ dataset }) {
     const clickedOption = event.target.innerHTML;
     setSelectedOption(clickedOption);
   };
+  // console.log("the sharefile is", ShareFile.status);
+  const jsonData = ShareFile.df_copy_json;
+  const parsedJsonData = JSON.parse(jsonData);
+
+  const DynamicTable = () => {
+    const columns = Object.keys(parsedJsonData[0]);
+
+    const renderTableHeader = () => {
+      return columns.map((key, index) => <th key={index}>{key}</th>);
+    };
+
+    const renderTableData = () => {
+      return parsedJsonData.map((item, rowIndex) => (
+        <tr key={rowIndex}>
+          {columns.map((key, colIndex) => (
+            <td key={colIndex}>{item[key]}</td>
+          ))}
+        </tr>
+      ));
+    };
+
+    return (
+      <table className="table">
+        <thead>
+          <tr>{renderTableHeader()}</tr>
+        </thead>
+        <tbody>{renderTableData()}</tbody>
+      </table>
+    );
+  };
 
   const handleSubmit = () => {
     const message = `Submitted : ${selectedOption}`;
@@ -77,12 +107,7 @@ export default function Options({ dataset }) {
           </div>
           <div className="col-md-6 h-100">
             <div>
-              <iframe
-                src={ShareFile.name}
-                title="dataSet"
-                width={"100%"}
-                height={"500px"}
-              ></iframe>
+              <DynamicTable />
             </div>
           </div>
           <div className="col-md-3 text-capitalize bg-danger rounded position-relative">

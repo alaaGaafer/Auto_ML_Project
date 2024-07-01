@@ -62,27 +62,13 @@ def notify(request):
         is_time_series = request.POST.get('isTimeSeries')
 
         df_copy, nulls_dict, outlier_info, duplicates, imbalance_info, numerical_columns, low_variance_columns, low_variance_info, categorical_columns, deletion_messages, carednality_messages = Detections(toprocesseddf, response_variable)
-        def convert_float64_dtype(obj):
-            if isinstance(obj, pd.Float64Dtype):
-                return float('NaN')  # Convert to NaN or appropriate value
-            return obj
 
-        def convert_dict_to_serializable(d):
-            serializable_dict = {}
-            for key, value in d.items():
-                serializable_value = {
-                    'type': str(value['type']),  # Convert dtype to string
-                    'number_of_nulls': value['number_of_nulls'],
-                    'locations_of_nulls': value['locations_of_nulls']
-                }
-                serializable_dict[key] = serializable_value
-            return serializable_dict
-
-        serializable_nulls_dict = convert_dict_to_serializable(nulls_dict)
-        
-        print('Nulls dict:', nulls_dict)
+        # serializable_nulls_dict = convert_dict_to_serializable(nulls_dict)
+        #convert df_copy to json
+        df_copy_json = df_copy.to_json(orient='records')
+        print('Nulls dict:', df_copy_json)
         # serialized_nulls_dict = json.dumps(nulls_dict, default=convert_float64_dtype)
-        response_data= {'status': 'success', 'nulls_dict': serializable_nulls_dict} 
+        response_data= {'status': 'success', 'df_copy_json': df_copy_json} 
 
         # response_data_serializable = json.dumps(response_data, default=convert_float64_dtype)
 
@@ -92,3 +78,19 @@ def notify(request):
     else:
         return JsonResponse({'status': 'fail', 'message': 'Only POST method is allowed.'}, status=405)
 
+
+        # def convert_float64_dtype(obj):
+        #     if isinstance(obj, pd.Float64Dtype):
+        #         return float('NaN')  # Convert to NaN or appropriate value
+        #     return obj
+
+        # def convert_dict_to_serializable(d):
+        #     serializable_dict = {}
+        #     for key, value in d.items():
+        #         serializable_value = {
+        #             'type': str(value['type']),  # Convert dtype to string
+        #             'number_of_nulls': value['number_of_nulls'],
+        #             'locations_of_nulls': value['locations_of_nulls']
+        #         }
+        #         serializable_dict[key] = serializable_value
+        #     return serializable_dict

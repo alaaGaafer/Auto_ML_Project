@@ -73,10 +73,10 @@ export default function GetModel() {
 
       const result = await response.json();
       if (result.status === "success") {
-        setShareFile(dataset);
+        setShareFile(result);
         navigate("/option");
       }
-      console.log("Server response:", result);
+      // console.log("Server response:", result);
       // Handle the server response here
     } catch (error) {
       console.error("Error sending dataset to server:", error);
