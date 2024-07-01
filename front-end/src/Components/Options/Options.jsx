@@ -18,7 +18,7 @@ export default function Options({ dataset }) {
   const jsonData = ShareFile.df_copy_json;
   const parsedJsonData = JSON.parse(jsonData);
 
-  const DynamicTable = () => {
+  const DynamicTable = ({ rowLimit }) => {
     const columns = Object.keys(parsedJsonData[0]);
 
     const renderTableHeader = () => {
@@ -26,7 +26,7 @@ export default function Options({ dataset }) {
     };
 
     const renderTableData = () => {
-      return parsedJsonData.map((item, rowIndex) => (
+      return parsedJsonData.slice(0, rowLimit).map((item, rowIndex) => (
         <tr key={rowIndex}>
           {columns.map((key, colIndex) => (
             <td key={colIndex}>{item[key]}</td>
@@ -36,7 +36,7 @@ export default function Options({ dataset }) {
     };
 
     return (
-      <table className="table">
+      <table>
         <thead>
           <tr>{renderTableHeader()}</tr>
         </thead>
@@ -107,7 +107,7 @@ export default function Options({ dataset }) {
           </div>
           <div className="col-md-6 h-100">
             <div>
-              <DynamicTable />
+              <DynamicTable rowLimit={10} />
             </div>
           </div>
           <div className="col-md-3 text-capitalize bg-danger rounded position-relative">
