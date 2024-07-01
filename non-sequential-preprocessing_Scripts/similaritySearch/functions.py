@@ -40,7 +40,7 @@ class RemoveIDColumn:
                 df = df.drop(columns=col)
                 messages.append( f"Removed high cardinality column: {col}")
 
-        return df, messages
+        return df
 
 
 class ConvertToDatetime:
@@ -144,7 +144,7 @@ class MissingValues:
                 if status == "failed":
                     df[col].dropna(inplace=True)
 
-        return df, messages
+        return df
 
     def handle_nan(self, df, fillNA_dict):
         """
