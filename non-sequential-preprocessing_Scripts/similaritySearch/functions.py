@@ -33,12 +33,13 @@ class RemoveIDColumn:
         categorical_columns = df.select_dtypes(include='object').columns
 
         for col in categorical_columns:
-            unique_ratio = df[col].nunique() / len(df)
+            # Calculate the unique ratio after dropping NaNs in the column
+            unique_ratio = df[col].nunique() / len(df[col].dropna())
 
-            # If the ratio is 100% unique , consider it for removal
-            if unique_ratio == 1.0:
+            # If the ratio is 95% unique, consider it for removal
+            if unique_ratio >= 0.95:
                 df = df.drop(columns=col)
-                messages.append( f"Removed high cardinality column: {col}")
+                messages.append(f"Removed high cardinality column: {col}")
 
         return df
 
@@ -115,7 +116,7 @@ class MissingValues:
         nulls_dict = {}
 
         if columns_with_nulls.empty:
-            return {"No null values detected": None}
+            return None
         else:
             for col, count in columns_with_nulls.items():
                 nulls_dict[col] = {
@@ -123,7 +124,7 @@ class MissingValues:
                     "number_of_nulls": count,
                     "locations_of_nulls": df.index[df[col].isnull()].tolist()
                 }
-        return nulls_dict
+        return list(columns_with_nulls.index)
 
     def del_high_null_cols(self, df):
         messages = []
@@ -336,7 +337,7 @@ class Outliers:
         #     print(f"Status: {info['status']}")
         #     print("\n")
 
-        return outlier_info, cols_with_outliers
+        return cols_with_outliers
 
     def handle_outliers(self, df, cols, choices):
         """
@@ -424,7 +425,7 @@ class HandlingImbalanceClasses:
         if not imbalance_detected:
             imbalance_info += "No significant class imbalance detected."
 
-        return imbalance_info, imbalance_detected
+        return imbalance_detected
 
     def handle_class_imbalance(self, df, target_column, instruction='auto'):
         """
@@ -457,7 +458,8 @@ class HandlingImbalanceClasses:
         elif instruction == 'auto':
             smote = SMOTE()
             X_resampled, y_resampled = smote.fit_resample(df.drop(columns=[target_column]), df[target_column])
-            resampled_data = pd.concat([pd.DataFrame(X_resampled), pd.DataFrame(y_resampled, columns=[target_column])],axis=1)
+            resampled_data = pd.concat([pd.DataFrame(X_resampled), pd.DataFrame(y_resampled, columns=[target_column])],
+                                       axis=1)
             return resampled_data
 
         else:
@@ -598,15 +600,15 @@ class HandlingColinearity:
             handling_info['kept_columns'] = columns_to_keep
             df.drop(columns=columns_to_drop, inplace=True)
 
-        return df, handling_info
+        return df
 
 
 class HandlingReduction:
     """
     A class for handling dimensionality reduction in a pandas DataFrame.
-    
+
     functions:
-        - feature_reduction(df, num_components_to_keep): Reduces the dimensionality of the DataFrame using PCA. 
+        - feature_reduction(df, num_components_to_keep): Reduces the dimensionality of the DataFrame using PCA.
         - explainedVariability(df): Returns the cumulative explained variance and the number of components to keep.
         - plotExplainedVariance(X_pca): Plots the explained variance of the PCA components.
     """

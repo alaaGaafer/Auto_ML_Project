@@ -75,7 +75,7 @@ class AutoClean:
                       Norm_method: str) -> pd.DataFrame:
         """Handle missing values, outliers, normalization, and encoding."""
         df = MissingValues().handle_nan(df, fill_na_dict)
-        outlier_info, cols_with_outliers = Outliers().detect_outliers(df)
+        cols_with_outliers = Outliers().detect_outliers(df)
         df = Outliers().handle_outliers(df, cols_with_outliers, outliers_methods_input)
         df = DataNormalization().normalize_data(df, Norm_method)
 
@@ -142,9 +142,9 @@ class AutoClean:
             pred_df = EncodeCategorical().Encode(pred_df, encoding_dict)
             pred_df = HandlingImbalanceClasses().handle_class_imbalance(pred_df, self.y_column, imb_instruction)
 
-            pred_df = self.apply_feature_reduction(
-                pred_df, self.y_column, reduce, auto_reduce, self.featureReduction, HandlingReduction()
-            )
+            # pred_df = self.apply_feature_reduction(
+            #     pred_df, self.y_column, reduce, auto_reduce, self.featureReduction, HandlingReduction()
+            # )
         # ----------------------------------------------------------------------------------------------------------
         if self.problem == "timeseries":
             historical_df.rename(columns={self.date_col: 'ds', self.y_column: 'y'}, inplace=True)
@@ -152,44 +152,55 @@ class AutoClean:
 
         train_data, test_data = train_test_split(historical_df, test_size=0.2, random_state=42,
                                                  stratify=historical_df[self.y_column])
-        # Handle missing values, duplicates, outliers, normalization, and co-linearity
-        # train
+
+        train_data = train_data.reset_index(drop=True)
+        test_data = test_data.reset_index(drop=True)
+
         train_data = self._process_data(train_data, fill_na_dict, outliers_methods_input, Norm_method)
         test_data = self._process_data(test_data, fill_na_dict, outliers_methods_input, Norm_method)
 
         # ----------------------------------------------------------------------------------------------------------
         # concat test and train to remake historical_df to pass to extract_and_search_features
         historical_df_copy = pd.concat([train_data, test_data])
+        original_columns = set(historical_df.columns)
 
-        # remove co-linearity & low_variance
-        historical_df_copy_without_y = historical_df_copy.drop(columns=[self.y_column])
-        historical_df_copy_without_y = HandlingColinearity().handle_low_variance(historical_df_copy_without_y,
-                                                                                 lowvariance_actions)
-        historical_df_copy_without_y, handling_info = HandlingColinearity().handling_colinearity(
-            historical_df_copy_without_y)
-        historical_df_copy_without_y[self.y_column] = historical_df_copy[self.y_column]
-        historical_df_copy = historical_df_copy_without_y.copy()
+        # Remove co-linearity & low_variance
+        historical_df_without_y = historical_df_copy.drop(columns=[self.y_column])
+        historical_df_without_y = HandlingColinearity().handle_low_variance(historical_df_without_y,
+                                                                            lowvariance_actions)
+        historical_df_without_y = HandlingColinearity().handling_colinearity(historical_df_without_y)
+        historical_df_without_y[self.y_column] = historical_df_copy[self.y_column]
+
+        # Update historical_df_copy with processed columns
+        historical_df_copy = historical_df_without_y.copy()
+
+        # Identify removed columns
+        processed_columns = set(historical_df_copy.columns)
+        removed_columns = list(original_columns - processed_columns)
+
+        # Remove identified columns from train_data
+        train_data = train_data.drop(columns=removed_columns)
+        test_data = test_data.drop(columns=removed_columns)
 
         # Extract features and perform similarity search
         meta_extractor, meta_features, best_models = self.extract_and_search_features(historical_df_copy)
         # ----------------------------------------------------------------------------------------------------------
         # resuming cleaning both df (because of extraction)
-        train_data, test_data = train_test_split(historical_df_copy, test_size=0.2, random_state=42,
-                                                 stratify=historical_df_copy[self.y_column])
         # Encode categorical features and reduce dimensions if needed
         train_data = EncodeCategorical().Encode(train_data, encoding_dict)
         test_data = EncodeCategorical().Encode(test_data, encoding_dict)
+        if imb_instruction:
+            train_data = HandlingImbalanceClasses().handle_class_imbalance(train_data, self.y_column, imb_instruction)
+            test_data = HandlingImbalanceClasses().handle_class_imbalance(test_data, self.y_column, imb_instruction)
 
-        train_data = HandlingImbalanceClasses().handle_class_imbalance(train_data, self.y_column, imb_instruction)
-        test_data = HandlingImbalanceClasses().handle_class_imbalance(test_data, self.y_column, imb_instruction)
+        # train_data = self.apply_feature_reduction(
+        #     train_data, self.y_column, reduce, auto_reduce, self.featureReduction, HandlingReduction()
+        # )
+        #
+        # test_data = self.apply_feature_reduction(
+        #     test_data, self.y_column, reduce, auto_reduce, self.featureReduction, HandlingReduction()
+        # )
 
-        train_data = self.apply_feature_reduction(
-            train_data, self.y_column, reduce, auto_reduce, self.featureReduction, HandlingReduction()
-        )
-
-        test_data = self.apply_feature_reduction(
-            test_data, self.y_column, reduce, auto_reduce, self.featureReduction, HandlingReduction()
-        )
         # --------------------------------------------------------------------------------------------
         # return cleand df
         historical_df_copy = pd.concat([train_data, test_data])
@@ -202,11 +213,11 @@ class AutoClean:
         x_test = test_data.drop(columns=[self.y_column])
         y_test = test_data[self.y_column]
 
-        # Bestmodelobj = Bestmodel(ProblemType.CLASSIFICATION, ["KNN"], x_train, x_test, y_train, y_test)
-        # Bestmodelobj.splitTestData()
-        # Bestmodelobj.TrainModel()
-        # print(Bestmodelobj.modelobj)
-        # meta_features.append()
+        Bestmodelobj = Bestmodel(ProblemType.CLASSIFICATION, ["KNN"], x_train, x_test, y_train, y_test)
+        Bestmodelobj.splitTestData()
+        Bestmodelobj.TrainModel()
+        print(Bestmodelobj.modelobj)
+        # meta_features.append(Bestmodelobj.modelobj)
         # meta_extractor.addToKnowledgeBase(meta_features)
         if self.pred_file_path:
             return historical_df_copy, pred_df
@@ -243,12 +254,6 @@ def user_interaction():
         print(f"Low Variance Columns: {low_variance_columns}")
         print(f"Categorical Columns: {categorical_columns}")
 
-        # with open(json_file_path, 'r') as f:
-        #     detection_results = json.load(f)
-        #
-        # print("\nDeserialized JSON Data:")
-        # print(json.dumps(detection_results, indent=4))
-        #
         # Handling missing values
         fill_na_dict = {}
         for col in nulls_columns:
@@ -256,8 +261,10 @@ def user_interaction():
 
         # Handling outliers
         outliers_method_input = ('z_score', 'auto', 3)
-
-        imb_instruction = "auto"
+        if imbalance:
+            imb_instruction = "auto"
+        else:
+            imb_instruction=None
         Norm_method = "auto"
         low_actions = {}
         encoding_dict = {}
@@ -275,7 +282,7 @@ def user_interaction():
                                                   imb_instruction, Norm_method,
                                                   low_actions, encoding_dict, reduce, auto_reduce,
                                                   num_components_to_keep)
-        print(processed_data)
+        # print(processed_data)
         print("Data preprocessing and handling completed successfully.")
         return processed_data
 
