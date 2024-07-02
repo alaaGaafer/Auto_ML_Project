@@ -11,7 +11,7 @@ from sklearn.linear_model import Lasso, Ridge
 from sklearn.ensemble import RandomForestRegressor
 from xgboost import XGBRegressor
 import time
-
+from .Models import ARIMAModel, SARIMAModel
 class CustomCallback(Callback):
     def __init__(self, max_same_incumbent_trials=30):
         self.trials_counter = 0
@@ -217,7 +217,7 @@ class Models:
     def timeser(self,configDict):
         model=configDict['Models']
         if model=='Arima':
-            return Arima(self.Y_train,self.Y_test,p=configDict['p'],d=configDict['d'],q=configDict['q'],freq=self.freq)
+            return ARIMAModel.Arimasmac(self.Y_train,self.Y_test,p=configDict['p'],d=configDict['d'],q=configDict['q'],freq=self.freq)
         elif model=='Sarima':
             return 10000
 from enum import Enum

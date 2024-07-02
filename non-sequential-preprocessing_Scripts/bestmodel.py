@@ -10,6 +10,7 @@ from sklearn.linear_model import LinearRegression, Lasso, Ridge
 from sklearn.ensemble import RandomForestRegressor
 from xgboost import XGBRegressor
 from sklearn.model_selection import train_test_split
+from cashAlgorithm.Models import ARIMAModel
 
 class Bestmodel:
     def __init__(self,problemtype,choosednModels,X_train,X_text,y_train,y_test) -> None:
@@ -63,7 +64,9 @@ class Bestmodel:
             self.modelstr=HPOdict['Models']
             self.modelobj=model
         elif self.problemtype == ProblemType.TIME_SERIES:
-            pass
+            if HPOdict['Models'] == 'Arima':
+                self.modelobj = ARIMAModel.fit(self.y_train, HPOdict.get('p', 1), HPOdict.get('d', 1), HPOdict.get('q', 1))
+
 
     def PredictModel(self,xtopred):
         if self.problemtype == ProblemType.CLASSIFICATION:
@@ -78,8 +81,12 @@ class Bestmodel:
         pass
     def splitTestData(self):
         #split self.X_test and self.y_test into two parts
-        self.X_test1, self.X_test2, self.y_test1, self.y_test2 = train_test_split(self.X_test, self.y_test, test_size=0.5, random_state=42)
-        
+        if self.problemtype!=ProblemType.TIME_SERIES:
+            self.X_test1, self.X_test2, self.y_test1, self.y_test2 = train_test_split(self.X_test, self.y_test, test_size=0.5, random_state=42)
+        elif self.problemtype==ProblemType.TIME_SERIES:
+            #split only the ytest to ytest1 and ytest2
+            self.y_test1, self.y_test2 = train_test_split(self.y_test, test_size=0.5, random_state=42)
+            self.X_test1='lolll'
     
 
 if __name__ =="__main__":

@@ -122,4 +122,4 @@ def preprocessingAll(request):
                                                   imb_instruction, Norm_method,
                                                   low_actions, encoding_dict, reduce, auto_reduce,
                                                   num_components_to_keep)
-        
+        return JsonResponse({'status': 'success', ' 
