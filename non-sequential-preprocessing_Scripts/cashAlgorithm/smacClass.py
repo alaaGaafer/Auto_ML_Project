@@ -217,6 +217,7 @@ class Models:
     def timeser(self,configDict):
         model=configDict['Models']
         if model=='Arima':
+            # print("Arima model",ARIMAModel.Arimasmac(self.Y_train,self.Y_test,p=configDict['p'],d=configDict['d'],q=configDict['q'],freq=self.freq))
             return ARIMAModel.Arimasmac(self.Y_train,self.Y_test,p=configDict['p'],d=configDict['d'],q=configDict['q'],freq=self.freq)
         elif model=='Sarima':
             return 10000
@@ -266,7 +267,7 @@ class Facade:
         return incumbents
     def TimeSeriesFacade(self):
         timeclassifier=Models(self.models,'TimeSeries',self.X_train,self.Y_train,self.X_test,self.Y_test,freq=self.freq,m=self.m)
-        scenario = Scenario(timeclassifier.configspace(), deterministic=True, n_trials=100)
+        scenario = Scenario(timeclassifier.configspace(), deterministic=True, n_trials=10)
         smac = HyperparameterOptimizationFacade(scenario, timeclassifier.train,overwrite=True,callbacks=[CustomCallback()])
         incumbent=smac.optimize()
         # print(incumbent)

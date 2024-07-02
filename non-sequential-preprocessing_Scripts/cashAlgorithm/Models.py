@@ -32,12 +32,14 @@ class ARIMAModel:
         model_fit = model_fit.fit()
         forecast_values = model_fit.forecast(steps=len(test))
             
-
         return  np.mean(np.abs((forecast_values - test['y']) / test['y'])) * 100
-    def fit(self, train_data,p,d,q,freq='d'):
+    def fit(self, train,p,d,q,freq='d'):
+        # print(train)
+        # print(q)
         train = train.asfreq(freq)
-        self.model = ARIMA(train, order=(p,d,q)).fit()
-        self.model = self.model.fit()
+        model = ARIMA(train['y'], order=(p,d,q))
+        modelfit = model.fit()
+        self.model = modelfit
         return self.model
     def predict(self, steps):
         return self.model.forecast(steps=steps)
