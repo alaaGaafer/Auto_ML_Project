@@ -44,7 +44,7 @@ export default function Options({ dataset }) {
     };
 
     return (
-      <table>
+      <table className="custom-table" >
         <thead>
           <tr>{renderTableHeader()}</tr>
         </thead>

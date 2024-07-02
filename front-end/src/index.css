@@ -184,6 +184,7 @@ nav .nav-item .active{
 .options-container {
   background-image: url('../src/Assets/images/1.png');
   background-size: cover;
+  
 }
 
 
@@ -237,3 +238,88 @@ nav .nav-item .active{
   font-size: 0.83rem; 
   color: #6c757d;
 }
+
+.custom-table {
+  width: auto;
+  border-collapse: collapse;
+  margin: 0;
+  font-size: 1em;
+  min-width: auto;
+  box-shadow: 0 0 20px rgba(0, 0, 0, 0.15)
+}
+
+.custom-table thead tr {
+  background-color: black;
+  color: white;
+  text-align: left;
+  font-weight: bold;
+}
+
+.custom-table th,
+.custom-table td {
+  padding: 1px 2px;
+}
+
+.custom-table tbody tr {
+  border-bottom: 1px solid black;
+
+}
+
+.custom-table tbody tr:nth-of-type(even) {
+  background-color: #f3f3f3;
+}
+
+.custom-table tbody tr:last-of-type {
+  border-bottom: 2px solid var(--mainColor);
+}
+
+.custom-table tbody tr.active-row {
+  font-weight: bold;
+  color: var(--redColor);
+}
+.sidebar {
+  width: 200px; 
+  flex-shrink: 0;
+  background-color: red;
+}
+
+.output-container {
+  display: flex;
+  flex-direction: row;
+  height: 100vh;
+}
+
+.left-section {
+  width: 30%;
+  padding: 20px;
+  border-right: 1px solid #ccc;
+  overflow-y: auto;
+  color: white; 
+}
+
+.left-section h2 {
+  margin-bottom: 200px;
+  color: white; 
+}
+
+.right-section {
+  width: 70%;
+  padding: 20px;
+  overflow-y: auto;
+  color: white; 
+}
+
+#Output table {
+  width: 100%;
+  border-collapse: collapse;
+  color: white; 
+}
+
+th, td {
+  border: 1px solid #ccc;
+  padding: 8px;
+  text-align: left;
+}
+
+
+
