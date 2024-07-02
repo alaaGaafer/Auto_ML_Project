@@ -168,7 +168,7 @@ class AutoClean:
         if imb_instruction:
             train_data = HandlingImbalanceClasses().handle_class_imbalance(train_data, self.y_column, imb_instruction)
             test_data = HandlingImbalanceClasses().handle_class_imbalance(test_data, self.y_column, imb_instruction)
-
+        
         # handling_reduction = HandlingReduction()
 
         # X_train = train_data.drop(columns=[self.y_column]).select_dtypes(include=[np.number])
