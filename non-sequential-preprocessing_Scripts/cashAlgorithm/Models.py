@@ -1,101 +1,74 @@
 import numpy as np
-from sklearn.preprocessing import PolynomialFeatures
-from statsmodels.stats.diagnostic import acorr_ljungbox
-from statsmodels.stats.stattools import durbin_watson
+import pandas as pd
 from statsmodels.tsa.arima.model import ARIMA
 from statsmodels.tsa.statespace.sarimax import SARIMAX
-# from prophet import Prophet
-from sklearn.linear_model import LogisticRegression, RidgeClassifier, Lasso, LinearRegression, Ridge
-from sklearn.tree import DecisionTreeClassifier, DecisionTreeRegressor
-from sklearn.ensemble import RandomForestClassifier, RandomForestRegressor
-from sklearn.svm import SVC
-from sklearn.neighbors import KNeighborsClassifier, KNeighborsRegressor
 from statsmodels.tsa.stattools import adfuller
-from xgboost import XGBClassifier, XGBRegressor
-from sklearn.naive_bayes import GaussianNB
-from sklearn.metrics import accuracy_score, confusion_matrix, classification_report
-from sklearn.metrics import mean_absolute_error, mean_squared_error
-
+import warnings
+# from prophet import Prophet
+# Suppress warnings
+warnings.filterwarnings("ignore")
 
 # ARIMA model class
 class ARIMAModel:
     def __init__(self):
-    #     self.order = order
         self.model = None
 
-    def Arimasmac(train,test, p, d, q,freq='d'):
+    def Arimasmac(self, train, test, p, d, q, freq='D'):
         train = train.asfreq(freq)
         test = test.asfreq(freq)
-        
-        
-        model_fit = ARIMA(train['y'], order=(p, d, q))
-        model_fit = model_fit.fit()
+        model_fit = ARIMA(train['y'], order=(p, d, q)).fit()
         forecast_values = model_fit.forecast(steps=len(test))
-            
-        return  np.mean(np.abs((forecast_values - test['y']) / test['y'])) * 100
-    def fit(self, train,p,d,q,freq='d'):
-        # print(train)
-        # print(q)
+        return np.mean(np.abs((forecast_values - test['y']) / test['y'])) * 100
+
+    def fit(self, train, p, d, q, freq='d'):
         train = train.asfreq(freq)
-        model = ARIMA(train['y'], order=(p,d,q))
-        modelfit = model.fit()
-        self.model = modelfit
+        model = ARIMA(train['y'], order=(p, d, q))
+        self.model = model.fit()
         return self.model
+
     def predict(self, steps):
         return self.model.forecast(steps=steps)
-
 
 # SARIMA model class
 class SARIMAModel:
-    def __init__(self, order, seasonal_order):
-        self.order = order
-        self.seasonal_order = seasonal_order
+    def __init__(self):
         self.model = None
-        self.enforce_stationarity = False
-        self.enforce_invertibility = False
 
-    def fit(self, train_data):
-        # Perform Augmented Dickey-Fuller test for stationarity
-        adf_test = adfuller(train_data)
-        adf_statistic = adf_test[0]
-        adf_pvalue = adf_test[1]
+    def Sarimasmac(self, train, test, p, q, d, P, Q, D, s, freq='D'):
+        train = train.asfreq(freq)
+        test = test.asfreq(freq)
+        model = SARIMAX(train, order=(p, q, d), seasonal_order=(P, Q, D, s), freq=freq)
+        model_fit = model.fit(disp=False)  # Suppress the fitting output
+        forecast_values = model_fit.forecast(steps=len(test))
+        return np.mean(np.abs((forecast_values - test['y']) / test['y'])) * 100
 
-        # Check if stationarity should be enforced
-        if adf_pvalue < 0.05:
-            self.enforce_stationarity = True
-            print("Augmented Dickey-Fuller Test: Series is not stationary. Enforcing stationarity.")
-        else:
-            print("Augmented Dickey-Fuller Test: Series is stationary.")
+    def fit_with_tests(self, train_data, p, q, d, P, Q, D, s, freq='D'):
+        try:
+            # Perform Augmented Dickey-Fuller test for stationarity
+            adf_test = adfuller(train_data)
+            adf_statistic = adf_test[0]
+            adf_pvalue = adf_test[1]
+            enforce_stationarity = adf_pvalue < 0.05
 
-        # Fit the SARIMAX model
-        self.model = SARIMAX(train_data, order=self.order, seasonal_order=self.seasonal_order,
-                             enforce_stationarity=self.enforce_stationarity,
-                             enforce_invertibility=self.enforce_invertibility).fit(disp=False)
+            train_data = train_data.asfreq(freq)
 
-        # Perform Ljung-Box test for residuals autocorrelation
-        residuals = self.model.resid
-        lb_test = acorr_ljungbox(residuals, lags=10)
-        lb_statistic = lb_test[0][0]
-        lb_pvalue = lb_test[1][0]
-
-        # Check if invertibility should be enforced
-        if lb_pvalue < 0.05:
-            self.enforce_invertibility = True
-            print("Ljung-Box Test: Residuals exhibit autocorrelation. Enforcing invertibility.")
-        else:
-            print("Ljung-Box Test: Residuals do not exhibit significant autocorrelation.")
-
-        # Print Durbin-Watson statistic for residual autocorrelation
-        dw_statistic = durbin_watson(residuals)
-        print(f"Durbin-Watson Statistic: {dw_statistic}")
+            # Fit the SARIMAX model
+            model = SARIMAX(train_data['y'], order=(p, d, q), seasonal_order=(P, Q, D, s),
+                            freq=freq, enforce_stationarity=enforce_stationarity)
+            self.model = model.fit(disp=False)  # Suppress the fitting output
+            return self.model
+        except Exception as e:
+            print(f"Error in fit_with_tests: {e}")
+            return None
 
     def predict(self, steps):
-        return self.model.forecast(steps=steps)
-
+        if self.model is not None:
+            return self.model.forecast(steps=steps)
+        else:
+            raise ValueError("Model has not been fitted yet. Call `fit_with_tests` before predicting.")
 
 # Prophet model class
 class ProphetModel:
-    # ['additive', 'multiplicative']
     def __init__(self, holidays=None, seasonality_mode=None, seasonality_prior_scale=None):
         self.model = Prophet(holidays=holidays, seasonality_mode=seasonality_mode,
                              seasonality_prior_scale=seasonality_prior_scale)
@@ -110,6 +83,25 @@ class ProphetModel:
         forecast = self.model.predict(future_data)
         return forecast[['ds', 'yhat']]
 
-
-
-
+# if __name__ == "__main__":
+#     path = r"C:\Users\Alaa\Downloads\daily-minimum-temperatures-in-me.csv"
+#     df = pd.read_csv(path)
+#     df.rename(columns={'Date': 'ds', 'Daily minimum temperatures': 'y'}, inplace=True)
+#     df['ds'] = pd.to_datetime(df['ds'], format='%m/%d/%Y')
+#     df['y'] = df['y'].str.replace('[^0-9\.]', '', regex=True)
+#     df['y'] = pd.to_numeric(df['y'], errors='coerce')
+#     df['y'] = df['y'].astype(float)
+#     df.set_index('ds', inplace=True)
+#     split_date = pd.to_datetime('1990-12-15')
+#     train_data = df[df.index <= split_date]
+#     test_data = df[df.index > split_date]
+#
+#     sarima_model = SARIMAModel()
+#     loss = sarima_model.Sarimasmac(train_data, test_data, 1, 1, 1, 1, 1, 1, 7, freq='D')
+#     print(f"Loss: {loss}")
+#
+#     model = sarima_model.fit_with_tests(train_data, 1, 1, 1, 1, 1, 1, 7, freq='D')
+#     if model is not None:
+#         print("Model fitted successfully.")
+#     else:
+#         print("Model fitting failed.")
