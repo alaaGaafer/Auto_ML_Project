@@ -611,18 +611,21 @@ class HandlingReduction:
         - feature_reduction(df, num_components_to_keep): Reduces the dimensionality of the DataFrame using PCA.
         - explainedVariability(df): Returns the cumulative explained variance and the number of components to keep.
         - plotExplainedVariance(X_pca): Plots the explained variance of the PCA components.
+        - apply_feature_reduction(data, y_column, reduce, auto_reduce, feature_reduction_method, handling_reduction): Applies feature reduction.
     """
 
-    def feature_reduction(self, df, num_components_to_keep):
+    def feature_reduction(self, df, num_components_to_keep, pca_model=None):
         X = df.copy()
         X = X.select_dtypes(include=[np.number])
-        pca = PCA(n_components=num_components_to_keep)
-        X_pca = pca.fit_transform(X)
+        if pca_model is None:
+            pca = PCA(n_components=num_components_to_keep)
+            X_pca = pca.fit_transform(X)
+        else:
+            X_pca = pca_model.transform(X)
         reduced_df = pd.DataFrame(data=X_pca, columns=[f'PC_{i + 1}' for i in range(num_components_to_keep)])
         return reduced_df
 
     def explainedVariability(self, df):
-        explainVariancethreshold = 0.9
         explanation_list = []
         X = df.copy()
         X = X.select_dtypes(include=[np.number])
@@ -646,8 +649,8 @@ class HandlingReduction:
             plt.xlabel('number of components')
             plt.ylabel('cumulative explained variance')
             plt.show()
-        else:
-            return "Number of components is greater than 2, so cannot plot the explained variance"
+        # else:
+        #     return "Number of components is greater than 2, so cannot plot the explained variance"
     # def selectFeatures(self,df):
 
     #     Y=df.iloc[:,-1]
