@@ -239,7 +239,7 @@ nav .nav-item .active{
   color: #6c757d;
 }
 
-.custom-table {
+#options.custom-table {
   width: auto;
   border-collapse: collapse;
   margin: 0;
@@ -248,65 +248,75 @@ nav .nav-item .active{
   box-shadow: 0 0 20px rgba(0, 0, 0, 0.15)
 }
 
-.custom-table thead tr {
+#options.custom-table thead tr {
   background-color: black;
   color: white;
   text-align: left;
   font-weight: bold;
 }
 
-.custom-table th,
+#options.custom-table th,
 .custom-table td {
   padding: 1px 2px;
 }
 
-.custom-table tbody tr {
+#options.custom-table tbody tr {
   border-bottom: 1px solid black;
 
 }
 
-.custom-table tbody tr:nth-of-type(even) {
+#options.custom-table tbody tr:nth-of-type(even) {
   background-color: #f3f3f3;
 }
 
-.custom-table tbody tr:last-of-type {
+#options.custom-table tbody tr:last-of-type {
   border-bottom: 2px solid var(--mainColor);
 }
 
-.custom-table tbody tr.active-row {
+#options.custom-table tbody tr.active-row {
   font-weight: bold;
   color: var(--redColor);
 }
-.sidebar {
+/*.sidebar {
   width: 200px; 
   flex-shrink: 0;
   background-color: red;
-}
-
-.output-container {
+}*/
+#output .output-container{
   display: flex;
   flex-direction: row;
   height: 100vh;
+  background-color: white;
 }
 
-.left-section {
+#output .custom-table{
+  background-color: white;
+  color :black
+
+}
+
+ .left-section {
   width: 30%;
   padding: 20px;
   border-right: 1px solid #ccc;
   overflow-y: auto;
-  color: white; 
+  color:black; 
+  background-color: white;
 }
 
-.left-section h2 {
-  margin-bottom: 200px;
-  color: white; 
+.left-section h3 {
+  margin-bottom: 50px;
+  color:black; 
+  background-color: white;
+
 }
 
 .right-section {
   width: 70%;
   padding: 20px;
   overflow-y: auto;
-  color: white; 
+  color: black; 
+  background-color: white;
 }
 
 #Output table {
@@ -319,7 +329,9 @@ th, td {
   border: 1px solid #ccc;
   padding: 8px;
   text-align: left;
+
 }
-
-
-
+th{
+  background-color: black ;
+  color:white 
+}

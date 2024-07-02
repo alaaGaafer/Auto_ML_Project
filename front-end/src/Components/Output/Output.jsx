@@ -1,14 +1,16 @@
-import React, { useEffect, useState } from 'react';
+import React, { useState } from 'react';
+import Papa from 'papaparse';
+import { useNavigate } from "react-router-dom";
+
 
 const Output = () => {
   const [bestModel, setBestModel] = useState([]);
   const [hyperparameters, setHyperparameters] = useState([]);
   const [csvData, setCsvData] = useState([]);
-  const [dataset, setDataset] = useState(null);
   const [isDatasetLoaded, setIsDatasetLoaded] = useState(false);
 
-  useEffect(() => {
-    // Fetch data from the backend
+  // Fetch data from the backend
+  React.useEffect(() => {
     fetch('/api/best-model')
       .then(response => response.json())
       .then(data => setBestModel(data));
@@ -29,39 +31,73 @@ const Output = () => {
     if (file) {
       const extension = file.name.split(".").pop().toLowerCase();
       if (allowedExtensions.includes(extension)) {
-        setDataset(file);
-        setIsDatasetLoaded(true);
-        // Optionally, you can process the uploaded file here
+        parseFile(file);
       } else {
-        setIsDatasetLoaded(false);
         alert("Please upload a CSV or Excel file.");
       }
-    } else {
-      setIsDatasetLoaded(false);
     }
   };
 
+  const parseFile = (file) => {
+    Papa.parse(file, {
+      header: true,
+      complete: (result) => {
+        setCsvData(result.data);
+        setIsDatasetLoaded(true);
+      },
+      error: (error) => {
+        console.error("Error parsing file:", error);
+      },
+    });
+  };
+
   const handleUploadClick = () => {
-    // Trigger file input click programmatically
     document.getElementById("fileInput").click();
+  };
+
+  const DynamicTable = ({ rowLimit }) => {
+    const columns = csvData.length > 0 ? Object.keys(csvData[0]) : [];
+
+    const renderTableHeader = () => {
+      return columns.map((key, index) => <th key={index}>{key}</th>);
+    };
+
+    const renderTableData = () => {
+      return csvData.slice(0, rowLimit).map((item, rowIndex) => (
+        <tr key={rowIndex}>
+          {columns.map((key, colIndex) => (
+            <td key={colIndex}>{item[key]}</td>
+          ))}
+        </tr>
+      ));
+    };
+
+    return (
+      <table className="custom-table">
+        <thead>
+          <tr>{renderTableHeader()}</tr>
+        </thead>
+        <tbody>{renderTableData()}</tbody>
+      </table>
+    );
   };
 
   return (
     <div className="output-container">
       <div className="left-section">
-        <h2>Best Model</h2>
+        <h3>Best Model</h3>
         <div>
           {bestModel.map((item, index) => (
             <div key={index}>{item}</div>
           ))}
         </div>
-        <h2>Hyperparameters</h2>
+        <h3>Hyperparameters</h3>
         <ul>
           {hyperparameters.map((item, index) => (
             <li key={index}>{item}</li>
           ))}
         </ul>
-        <h2>Uploaded Dataset</h2>
+        <h3>Upload Dataset</h3>
         <button onClick={handleUploadClick}>Upload Dataset</button>
         <input
           type="file"
@@ -69,27 +105,9 @@ const Output = () => {
           style={{ display: "none" }}
           onChange={handleDatasetChange}
         />
-        {isDatasetLoaded && (
-          <table>
-            <thead>
-              <tr>
-                {csvData.length > 0 &&
-                  Object.keys(csvData[0]).map((key, index) => (
-                    <th key={index}>{key}</th>
-                  ))}
-              </tr>
-            </thead>
-            <tbody>
-              {csvData.map((row, rowIndex) => (
-                <tr key={rowIndex}>
-                  {Object.values(row).map((value, colIndex) => (
-                    <td key={colIndex}>{value}</td>
-                  ))}
-                </tr>
-              ))}
-            </tbody>
-          </table>
-        )}
+      </div>
+      <div className="right-section">
+        {isDatasetLoaded && <DynamicTable rowLimit={10} />}
       </div>
     </div>
   );
