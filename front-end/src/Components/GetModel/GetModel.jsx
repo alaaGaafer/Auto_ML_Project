@@ -8,6 +8,7 @@ export default function GetModel() {
   const [dataset, setDataset] = useState(null);
   const [isDatasetLoaded, setIsDatasetLoaded] = useState(false);
   const [responseVariable, setResponseVariable] = useState("");
+  const [problemtype, setproblemtype] = useState("");
   const [isTimeSeries, setIsTimeSeries] = useState(false);
   const { setShareFile } = useContext(dataContext);
   const navigate = useNavigate();
@@ -45,6 +46,7 @@ export default function GetModel() {
     };*/
 
   const handleModelChange = (event) => {
+    setproblemtype(event.target.value);
     if (event.target.value === "timeSeries") {
       setIsTimeSeries(true);
     } else {
@@ -55,11 +57,13 @@ export default function GetModel() {
   const handleResponseVariableChange = (event) => {
     setResponseVariable(event.target.value);
   };
+
   const sendDatasetToServer = async () => {
     const formData = new FormData();
     formData.append("dataset", dataset);
     formData.append("responseVariable", responseVariable);
     formData.append("isTimeSeries", isTimeSeries);
+    formData.append("problemtype", problemtype);
 
     try {
       const response = await fetch("http://127.0.0.1:8000/retTuner/notify", {
@@ -77,6 +81,7 @@ export default function GetModel() {
         const modelData = {
           responseVariable: responseVariable,
           isTimeSeries: isTimeSeries,
+          problemtype: problemtype,
         };
         navigate("/option", { state: { modelData } });
       }
@@ -120,8 +125,8 @@ export default function GetModel() {
               id="modeling"
             >
               <option></option>
-              <option value="">classification</option>
-              <option value="">regression</option>
+              <option value="classification">classification</option>
+              <option value="regression">regression</option>
               <option value="timeSeries">time series</option>
             </select>
             <div className={isTimeSeries ? "" : "d-none"}>

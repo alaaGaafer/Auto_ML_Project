@@ -213,7 +213,7 @@ class AutoClean:
         x_test = test_data.drop(columns=[self.y_column])
         y_test = test_data[self.y_column]
 
-        Bestmodelobj = Bestmodel(ProblemType.CLASSIFICATION, ["KNN"], x_train, x_test, y_train, y_test)
+        Bestmodelobj = Bestmodel(ProblemType.CLASSIFICATION, ["KNN",'LR','RF'], x_train, x_test, y_train, y_test)
         Bestmodelobj.splitTestData()
         Bestmodelobj.TrainModel()
         print(Bestmodelobj.modelobj)

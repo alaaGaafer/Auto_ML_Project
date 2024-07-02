@@ -12,10 +12,11 @@ export default function Options({ dataset }) {
   const [showNotification, setShowNotification] = useState(false);
   const location = useLocation();
   const modelData = location.state?.modelData;
-  // console.log("modelData", modelData);
+  console.log("modelData", modelData);
 
-  // console.log("istimeseries", istimeseries);
-  // console.log("problemtype", problemtype);
+  // console.log("istimeseries", modelData.istimeseries);
+  // console.log("problemtype", modelData.problemtype);
+  // console.log("responseVariable", modelData.responseVariable);
 
   const handleOptions = (event) => {
     const clickedOption = event.target.innerHTML;
@@ -71,6 +72,7 @@ export default function Options({ dataset }) {
     formData.append("dataset", datasetjson);
     formData.append("responseVariable", modelData.responseVariable);
     formData.append("isTimeSeries", modelData.isTimeSeries);
+    formData.append("problemtype", modelData.problemtype);
 
     try {
       const response = await fetch(
