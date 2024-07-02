@@ -41,9 +41,15 @@ export default function UserProfile() {
                 </div>
                 <div className="row mt-5">
                     <div className="col-md-12 text-center">
-                        <Link to="/" className="btn btn-outline-secondary">Back to Home</Link>
+                        <Link to="/" className="btn btn-outline-secondary" style={{ backgroundColor: '#dc3545', color: 'white', marginRight: '10px' }}>
+                            Back to Home
+                        </Link>
+                        <Link to="/getmodel" className="btn btn-outline-secondary" style={{ backgroundColor: '#dc3545', color: 'white', marginRight: '10px' }}>
+                            Create New Project
+                        </Link>
                     </div>
                 </div>
+
             </div>
         </div>
     );
