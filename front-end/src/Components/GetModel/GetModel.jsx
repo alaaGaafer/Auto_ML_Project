@@ -152,8 +152,7 @@ export default function GetModel() {
             />
             <button
               type="submit"
-              className="btn btn-danger my-2 d-block m-auto text-capitalize"
-            >
+              className="btn btn-danger my-2 d-block m-auto text-capitalize">
               get model
             </button>
           </div>

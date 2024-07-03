@@ -335,3 +335,14 @@ th{
   background-color: black ;
   color:white 
 }
+
+#userprofile {
+  background-image: url(../src/Assets/images/5.jpg);
+  background-size: cover;
+  background-repeat: no-repeat;
+  background-position:left;
+  /* height: 500px; */
+  display: flex;
+  justify-content: center;
+  align-items: center;
+}

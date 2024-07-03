@@ -1,6 +1,9 @@
 import React from 'react';
 import { Link } from 'react-router-dom';
 
+
+
+
 export default function UserProfile() {
     const user = {
         name: "Ahmed Ahmed",
@@ -32,6 +35,12 @@ export default function UserProfile() {
                                         <div className="post-content bg-light p-3 rounded">
                                             <p className="post-date"><strong>Date:</strong> {post.date}</p>
                                             <p>{post.content}</p>
+                                            <div className="col-md-12 text-center">
+                                            <Link to="/output" className="btn btn-outline-secondary" style={{ backgroundColor: '#dc3545', color: 'white' }}>
+                                                Use Model 
+                                            </Link>
+                                        </div>
+                                            
                                         </div>
                                     </div>
                                 ))}
