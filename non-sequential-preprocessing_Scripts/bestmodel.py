@@ -10,10 +10,10 @@ from sklearn.linear_model import LinearRegression, Lasso, Ridge
 from sklearn.ensemble import RandomForestRegressor
 from xgboost import XGBRegressor
 from sklearn.model_selection import train_test_split
-from cashAlgorithm.Models import ARIMAModel
+from cashAlgorithm.Models import ARIMAModel, SARIMAModel
 
 class Bestmodel:
-    def __init__(self,problemtype,choosednModels,X_train,X_text,y_train,y_test,freq='d',m=7) -> None:
+    def __init__(self,problemtype,choosednModels,X_train,X_text,y_train,y_test,freq='D',m=7) -> None:
         
         self.problemtype=problemtype
         self.X_train=X_train
@@ -73,10 +73,13 @@ class Bestmodel:
                 # print(HPOdict.get('q', 1))
 
                 armodelobj = ARIMAModel()
-                armodelobj.fit(self.y_train, HPOdict.get('p', 1), HPOdict.get('d', 1), HPOdict.get('q', 1), self.freq)
+                armodelobj.fit(self.y_train, HPOdict.get('p', 1), HPOdict.get('q', 1), HPOdict.get('d', 1), self.freq)
                 # self.modelobj=arRes
             elif HPOdict['Models'] == 'Sarima':
-                pass
+                armodelobj = SARIMAModel()
+                armodelobj.fit_with_tests(self.y_train, HPOdict.get('p', 1), HPOdict.get('q', 1), HPOdict.get('d', 1),
+                                          HPOdict.get('sp', 1), HPOdict.get('sq', 1), HPOdict.get('sd', 1),HPOdict.get('ss', 7), self.freq) 
+                
             # print("theytest",self.y_test1)
             # print(len(self.y_test1))
             y_pred = armodelobj.predict(len(self.y_test1))

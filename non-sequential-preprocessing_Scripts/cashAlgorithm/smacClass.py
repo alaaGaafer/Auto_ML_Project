@@ -148,27 +148,27 @@ class Models:
             parameters = [models, p, q, d]
             if 'Sarima' in self.Models:
                 if self.freq == 'D':
-                    seasonal_periods = (7, 30)
+                    seasonal_periods = [7, 30]
                 elif self.freq == 'W':
-                    seasonal_periods = (4, 13, 52)
+                    seasonal_periods = [4, 13, 52]
                 elif self.freq == 'M':
-                    seasonal_periods = (12, 24)
+                    seasonal_periods = [12, 24]
                 elif self.freq == 'Q':
-                    seasonal_periods = (4, 8)
+                    seasonal_periods = [4, 8]
                 elif self.freq == 'A':
-                    seasonal_periods = 1
+                    seasonal_periods = [1]
                 else:
-                    seasonal_periods = 7
+                    seasonal_periods = [7]
 
                 SarimaP = Integer('sp', (0, 3))
                 sarimaq = Integer('sq', (0, 3))
                 sarimad = Integer('sd', (0, 3))
-                sarimas = Integer('ss', seasonal_periods)
+                sarimas = Categorical('ss', seasonal_periods)
 
                 usecondip = EqualsCondition(child=SarimaP, parent=models, value='Sarima')
                 usecondiq = EqualsCondition(child=sarimaq, parent=models, value='Sarima')
                 usecondid = EqualsCondition(child=sarimad, parent=models, value='Sarima')
-                usecondis = EqualsCondition(child=sarimad, parent=models, value='Sarima')
+                usecondis = EqualsCondition(child=sarimas, parent=models, value='Sarima')
                 parameters.append(SarimaP)
                 parameters.append(sarimaq)
                 parameters.append(sarimad)
@@ -244,7 +244,10 @@ class Models:
             return ARIMAModel.Arimasmac(self.Y_train, self.Y_test, p=configDict['p'], d=configDict['d'],
                                         q=configDict['q'], freq=self.freq)
         elif model == 'Sarima':
-            return 10000
+            print("Sarima model configurations: ", configDict)
+            return SARIMAModel.Sarimasmac(self.Y_train, self.Y_test, p=configDict['p'], q=configDict['q'], d=configDict['d'],
+                                          P=configDict['sp'], Q=configDict['sq'], D=configDict['sd'], s=configDict['ss'],
+                                          freq=self.freq)
 
 
 from enum import Enum
@@ -258,7 +261,7 @@ class ProblemType(Enum):
 
 
 class Facade:
-    def __init__(self, problem_type, Models, X_train, X_test, Y_train, Y_test, freq="d", s=7):
+    def __init__(self, problem_type, Models, X_train, X_test, Y_train, Y_test, freq="D", s=7):
         if isinstance(problem_type, ProblemType):
             self.problem_type = problem_type
             self.models = Models
@@ -301,7 +304,7 @@ class Facade:
     def TimeSeriesFacade(self):
         timeclassifier = Models(self.models, 'TimeSeries', self.X_train, self.Y_train, self.X_test, self.Y_test,
                                 freq=self.freq, s=self.s)
-        scenario = Scenario(timeclassifier.configspace(), deterministic=True, n_trials=10)
+        scenario = Scenario(timeclassifier.configspace(), deterministic=True, n_trials=10,trial_walltime_limit=15)
         smac = HyperparameterOptimizationFacade(scenario, timeclassifier.train, overwrite=True,
                                                 callbacks=[CustomCallback()])
         incumbent = smac.optimize()

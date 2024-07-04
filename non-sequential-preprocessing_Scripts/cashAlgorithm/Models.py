@@ -13,14 +13,15 @@ class ARIMAModel:
     def __init__(self):
         self.model = None
 
-    def Arimasmac(self, train, test, p, d, q, freq='D'):
+    @staticmethod
+    def Arimasmac(train, test, p, d, q, freq='D'):
         train = train.asfreq(freq)
         test = test.asfreq(freq)
         model_fit = ARIMA(train['y'], order=(p, d, q)).fit()
         forecast_values = model_fit.forecast(steps=len(test))
         return np.mean(np.abs((forecast_values - test['y']) / test['y'])) * 100
 
-    def fit(self, train, p, d, q, freq='d'):
+    def fit(self, train, p, d, q, freq='D'):
         train = train.asfreq(freq)
         model = ARIMA(train['y'], order=(p, d, q))
         self.model = model.fit()
@@ -33,18 +34,20 @@ class ARIMAModel:
 class SARIMAModel:
     def __init__(self):
         self.model = None
-
-    def Sarimasmac(self, train, test, p, q, d, P, Q, D, s, freq='D'):
+    
+    @staticmethod
+    def Sarimasmac(train, test, p, q, d, P, Q, D, s, freq='D'):
         train = train.asfreq(freq)
         test = test.asfreq(freq)
         model = SARIMAX(train, order=(p, q, d), seasonal_order=(P, Q, D, s), freq=freq)
         model_fit = model.fit(disp=False)  # Suppress the fitting output
         forecast_values = model_fit.forecast(steps=len(test))
         return np.mean(np.abs((forecast_values - test['y']) / test['y'])) * 100
-
+    # @staticmethod
     def fit_with_tests(self, train_data, p, q, d, P, Q, D, s, freq='D'):
         try:
             # Perform Augmented Dickey-Fuller test for stationarity
+            # print("order are",p, q, d,P, Q, D, s)
             adf_test = adfuller(train_data)
             adf_statistic = adf_test[0]
             adf_pvalue = adf_test[1]
