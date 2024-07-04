@@ -1,15 +1,18 @@
 from django.http import JsonResponse
 from django.views.decorators.csrf import csrf_exempt
 import json
-from .models import usersData
+from .models import usersData, datasetsData
 import pandas as pd
-# import from main function called detection
+import base64
 from preprocessing_Scripts.main import AutoClean
 
 
 
 # Create your views here.
-
+def getPhoto(phone):
+    imagepath = 'preprocessing_Scripts/media/' + phone + '.jpeg'
+    image=open(imagepath, 'rb')
+    return image
 
 @csrf_exempt
 def signup(request):
@@ -42,9 +45,21 @@ def inputvalidation(request):
         password = data.get('password')
         # print('test2')
         user = usersData.objects.filter(email=name, password=password)
+
         if user.exists():
+            user=user[0]
+            phone=user.phone
+            username = user.name
+            userimage_file = getPhoto(phone)
+            # print(userimage_file.read())
+            userimage = base64.b64encode(userimage_file.read()).decode('utf-8')
+            datasets = datasetsData.objects.filter(phone=phone)
+            datasets_json = json.dumps(list(datasets.values()))
             parameters['status'] = 'success'
-            parameters['message'] = 'User is valid'
+            parameters['username'] = username
+            parameters['datasets'] = datasets_json
+            parameters['userimage'] = userimage
+            parameters['phone'] = phone
         else:
             parameters['status'] = 'failure'
             parameters['message'] = 'User is invalid'
@@ -122,4 +137,4 @@ def preprocessingAll(request):
                                                   imb_instruction, Norm_method,
                                                   low_actions, encoding_dict, reduce, auto_reduce,
                                                   num_components_to_keep)
-        return JsonResponse({'status': 'success', ' 
+        # return JsonResponse({'status': 'success', ' 

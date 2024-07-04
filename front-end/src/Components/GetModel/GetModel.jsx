@@ -83,6 +83,7 @@ export default function GetModel() {
           isTimeSeries: isTimeSeries,
           problemtype: problemtype,
         };
+        console.log("Model Data:", modelData);
         navigate("/option", { state: { modelData } });
       }
       // console.log("Server response:", result);
@@ -152,7 +153,8 @@ export default function GetModel() {
             />
             <button
               type="submit"
-              className="btn btn-danger my-2 d-block m-auto text-capitalize">
+              className="btn btn-danger my-2 d-block m-auto text-capitalize"
+            >
               get model
             </button>
           </div>

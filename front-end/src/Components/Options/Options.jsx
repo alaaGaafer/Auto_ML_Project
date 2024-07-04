@@ -12,7 +12,7 @@ export default function Options({ dataset }) {
   const [showNotification, setShowNotification] = useState(false);
   const location = useLocation();
   const modelData = location.state?.modelData;
-  console.log("modelData", modelData);
+  // console.log("modelData", modelData);
 
   // console.log("istimeseries", modelData.istimeseries);
   // console.log("problemtype", modelData.problemtype);
@@ -44,7 +44,7 @@ export default function Options({ dataset }) {
     };
 
     return (
-      <table className="custom-table" >
+      <table className="custom-table">
         <thead>
           <tr>{renderTableHeader()}</tr>
         </thead>

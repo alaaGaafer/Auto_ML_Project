@@ -8,31 +8,17 @@ from .bestmodel import *
 
 class AutoClean:
     def __init__(self, historical_df, y_column, problem, date_col=None, pred_df=None):
-        #self.historical_file_path = historical_file_path
         self.historical_df = historical_df
         self.pred_df = pred_df
         self.y_column = y_column
         self.date_col = date_col
         self.problem = problem.lower()
-        # print("problem", self.problem)
 
-    @staticmethod
-    def _read_file(file_path: str) -> pd.DataFrame:
-        """Read a CSV or Excel file into a DataFrame."""
-        file_extension = file_path.split('.')[-1]
-        if file_extension == 'csv':
-            return pd.read_csv(file_path)
-        elif file_extension in ['xls', 'xlsx']:
-            return pd.read_excel(file_path)
-        else:
-            raise ValueError("Unsupported file format")
-
-    def extract_and_search_features(self, historical_df, dataset_name= "train.csv"):
-        # print(self.problem)
+    def extract_and_search_features(self, historical_df, dataset_name="train.csv"):
         knowledge_base_path = {
-            "regression": "similaritySearch/Knowledge bases/new_knowledgeBaseReg.csv",
+            "regression": "preprocessing_Scripts/similaritySearch/Knowledge bases/new_knowledgeBaseReg.csv",
             "classification": "preprocessing_Scripts/similaritySearch/Knowledge bases/new_knowledgeBaseCls.csv",
-            "timeseries": "similaritySearch/Knowledge bases/knowledgeBaseTime.csv"
+            "timeseries": "preprocessing_Scripts/similaritySearch/Knowledge bases/knowledgeBaseTime.csv"
         }.get(self.problem)
 
         if not knowledge_base_path:
@@ -83,47 +69,43 @@ class AutoClean:
 
         return df
 
+    def prediction_data(self, fill_na_dict, outliers_methods_input, Norm_method, lowvariance_actions, encoding_dict,
+                        imb_instruction, ):
+        self.pred_df, carednality_messages = RemoveIDColumn.remove_high_cardinality_columns(self.pred_df)
+        self.pred_df, deletion_messages = MissingValues().del_high_null_cols(self.pred_df)
+
+        if self.problem == "timeseries":
+            self.pred_df.rename(columns={self.date_col: 'ds', self.y_column: 'y'}, inplace=True)
+
+        self.pred_df = self.pred_df.reset_index(drop=True)
+
+        # Handle missing values, duplicates, outliers, normalization, and co-linearity in pred_data
+        pred_fill_na_dict = {}
+        null_info = df.isnull().sum()
+        pred_nulls_columns = null_info[null_info > 0]
+        for col in pred_nulls_columns:
+            for H_col, method in fill_na_dict.items():
+                if col == H_col:
+                    pred_fill_na_dict[col] = method
+                else:
+                    pred_fill_na_dict[col] = "auto"
+
+        pred_df = self._process_data(self.pred_df, pred_fill_na_dict, outliers_methods_input, Norm_method)
+
+        pred_df_without_y = pred_df.drop(columns=[self.y_column])
+        pred_df_without_y = HandlingColinearity().handle_low_variance(pred_df_without_y, lowvariance_actions)
+        pred_df_without_y, handling_info = HandlingColinearity().handling_colinearity(pred_df_without_y)
+        pred_df_without_y[self.y_column] = pred_df[self.y_column]
+        pred_df = pred_df_without_y.copy()
+        pred_df = EncodeCategorical().Encode(pred_df, encoding_dict)
+        pred_df = HandlingImbalanceClasses().handle_class_imbalance(pred_df, self.y_column, imb_instruction)
+
     # historical_df is the same one returned from detections
     def Handling_calls(self, fill_na_dict, outliers_methods_input, imb_instruction, Norm_method,
                        lowvariance_actions, encoding_dict, reduce, auto_reduce, num_components_to_keep):
-        if self.pred_df:
-            # pred_df = self._read_file(self.pred_file_path)
-            self.pred_df, carednality_messages = RemoveIDColumn.remove_high_cardinality_columns(self.pred_df)
-            self.pred_df, deletion_messages = MissingValues().del_high_null_cols(self.pred_df)
 
-            if self.problem == "timeseries":
-                self.pred_df.rename(columns={self.date_col: 'ds', self.y_column: 'y'}, inplace=True)
-
-            self.pred_df = self.pred_df.reset_index(drop=True)
-
-            # Handle missing values, duplicates, outliers, normalization, and co-linearity in pred_data
-            pred_fill_na_dict = {}
-            null_info = df.isnull().sum()
-            pred_nulls_columns = null_info[null_info > 0]
-            for col in pred_nulls_columns:
-                for H_col, method in fill_na_dict.items():
-                    if col == H_col:
-                        pred_fill_na_dict[col] = method
-                    else:
-                        pred_fill_na_dict[col] = "auto"
-
-            pred_df = self._process_data(self.pred_df, pred_fill_na_dict, outliers_methods_input, Norm_method)
-
-            pred_df_without_y = pred_df.drop(columns=[self.y_column])
-            pred_df_without_y = HandlingColinearity().handle_low_variance(pred_df_without_y, lowvariance_actions)
-            pred_df_without_y, handling_info = HandlingColinearity().handling_colinearity(pred_df_without_y)
-            pred_df_without_y[self.y_column] = pred_df[self.y_column]
-            pred_df = pred_df_without_y.copy()
-            pred_df = EncodeCategorical().Encode(pred_df, encoding_dict)
-            pred_df = HandlingImbalanceClasses().handle_class_imbalance(pred_df, self.y_column, imb_instruction)
-
-        # ----------------------------------------------------------------------------------------------------------
         if self.problem == "timeseries":
             self.historical_df.rename(columns={self.date_col: 'ds', self.y_column: 'y'}, inplace=True)
-        # لو عاصم هيجرب ويكنسل الdetections
-        # historical_df = RemoveIDColumn.remove_high_cardinality_columns(historical_df)
-        # historical_df = MissingValues().del_high_null_cols(historical_df)
-        # historical_df = Duplicates().handle_dub(historical_df)
         historical_df = self.historical_df.reset_index(drop=True)
 
         train_data, test_data = train_test_split(historical_df, test_size=0.2, random_state=42,
@@ -168,32 +150,27 @@ class AutoClean:
         if imb_instruction:
             train_data = HandlingImbalanceClasses().handle_class_imbalance(train_data, self.y_column, imb_instruction)
             test_data = HandlingImbalanceClasses().handle_class_imbalance(test_data, self.y_column, imb_instruction)
-        
-        # handling_reduction = HandlingReduction()
 
+        # handling_reduction = HandlingReduction()
+        #
         # X_train = train_data.drop(columns=[self.y_column]).select_dtypes(include=[np.number])
         # explained_variability, _ = handling_reduction.explainedVariability(X_train)
         # num_components_to_keep = handling_reduction.NumberOfComponents(X_train, explained_variability)
         # pca_model = PCA(n_components=num_components_to_keep).fit(X_train)
-
+        #
         # # Apply the fitted PCA model to both train and test data
         # reduced_train_df = handling_reduction.feature_reduction(train_data.drop(columns=[self.y_column]),
         #                                                         num_components_to_keep, pca_model)
         # reduced_train_df[self.y_column] = train_data[self.y_column]
-
-        # reduced_test_df = handling_reduction.feature_reduction(test_data.drop(columns=[self.y_column]), num_components_to_keep,
+        #
+        # reduced_test_df = handling_reduction.feature_reduction(test_data.drop(columns=[self.y_column]),
+        #                                                        num_components_to_keep,
         #                                                        pca_model)
         # reduced_test_df[self.y_column] = test_data[self.y_column]
-
-        # if self.pred_df:
-        #     self.pred_df = handling_reduction.feature_reduction(self.pred_df.drop(columns=[self.y_column]),
-        #                                                             num_components_to_keep, pca_model)
-        #     self.pred_df[self.y_column] = self.pred_df[self.y_column]
-        #     print("reduced_test_df", self.pred_df)
-
-        # print("reduced_train_df",reduced_train_df)
-
-        # print("reduced_test_df",reduced_test_df)
+        #
+        # print("reduced_train_df", reduced_train_df)
+        #
+        # print("reduced_test_df", reduced_test_df)
 
         # --------------------------------------------------------------------------------------------
         # return cleand df
@@ -206,17 +183,14 @@ class AutoClean:
         # Split test_data into features and labels
         x_test = test_data.drop(columns=[self.y_column])
         y_test = test_data[self.y_column]
-
-        Bestmodelobj = Bestmodel(ProblemType.CLASSIFICATION, ["KNN","LR","RF"], x_train, x_test, y_train, y_test)
+        print('best_models', best_models)
+        Bestmodelobj = Bestmodel(ProblemType.CLASSIFICATION, best_models, x_train, x_test, y_train, y_test)
         Bestmodelobj.splitTestData()
         Bestmodelobj.TrainModel()
         print(Bestmodelobj.modelobj)
         # meta_features.append(Bestmodelobj.modelobj)
         # meta_extractor.addToKnowledgeBase(meta_features)
-        if self.pred_df:
-            return historical_df_copy, self.pred_df
-        else:
-            return historical_df_copy
+        return historical_df_copy
 
     @staticmethod
     def featureReduction(df, Num_components_to_keep):
@@ -227,9 +201,6 @@ class AutoClean:
         non_numerical_df = df[non_numerical_columns].reset_index(drop=True)
         concatenated_features = pd.concat([non_numerical_df, reducedFeatures], axis=1)
         return concatenated_features
-
-
-# this part is just for testing ( will be removed)
 
 
 def user_interaction():
@@ -258,7 +229,7 @@ def user_interaction():
         if imbalance:
             imb_instruction = "auto"
         else:
-            imb_instruction=None
+            imb_instruction = None
         Norm_method = "auto"
         low_actions = {}
         encoding_dict = {}

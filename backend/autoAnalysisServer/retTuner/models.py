@@ -12,10 +12,10 @@ class organizationData(models.Model):
     description = models.TextField()
 class userOrganizationData(models.Model):
     organizationID = models.ForeignKey(organizationData, on_delete=models.CASCADE)
-    userID = models.ForeignKey(usersData, on_delete=models.CASCADE)
+    phone = models.ForeignKey(usersData, on_delete=models.CASCADE)
 class datasetsData(models.Model):
     datasetID = models.CharField(primary_key=True,max_length=100)
-    userID = models.ForeignKey(usersData, on_delete=models.CASCADE)
+    phone = models.ForeignKey(usersData, on_delete=models.CASCADE)
     datasetName = models.CharField(max_length=100)
     xCols = models.CharField(max_length=500)
     yCols = models.CharField(max_length=500)
@@ -52,9 +52,9 @@ class evaluationScoreData(models.Model):
     stratiID = models.IntegerField()
     score = models.FloatField()
 class hyperParametersData(models.Model):
-    modelID = models.ForeignKey(datasetsData, on_delete=models.CASCADE)
+    datasetID = models.ForeignKey(datasetsData, on_delete=models.CASCADE)
     hyperParameterName = models.CharField(max_length=500)
-    description = models.TextField()
+    value= models.CharField(max_length=500)
 class modelData(models.Model):
     modelID = models.CharField(primary_key=True,max_length=100)
     modelName = models.CharField(max_length=100)

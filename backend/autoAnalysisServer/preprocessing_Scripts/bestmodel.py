@@ -10,9 +10,10 @@ from sklearn.linear_model import LinearRegression, Lasso, Ridge
 from sklearn.ensemble import RandomForestRegressor
 from xgboost import XGBRegressor
 from sklearn.model_selection import train_test_split
+from .cashAlgorithm.Models import ARIMAModel, SARIMAModel
 
 class Bestmodel:
-    def __init__(self,problemtype,choosednModels,X_train,X_text,y_train,y_test) -> None:
+    def __init__(self,problemtype,choosednModels,X_train,X_text,y_train,y_test,freq='D',m=7) -> None:
         
         self.problemtype=problemtype
         self.X_train=X_train
@@ -20,8 +21,10 @@ class Bestmodel:
         self.y_train=y_train
         self.y_test=y_test
         self.choosenModels=choosednModels
+        self.freq=freq
+        self.m=m
     def Getincumbent(self):
-        Facadee=smacClass.Facade(self.problemtype,self.choosenModels,self.X_train,self.X_test1,self.y_train,self.y_test1)
+        Facadee=smacClass.Facade(self.problemtype,self.choosenModels,self.X_train,self.X_test1,self.y_train,self.y_test1,self.freq,self.m)
         incumbent=Facadee.chooseFacade()
         # print(incumbent)
         return incumbent
@@ -63,7 +66,30 @@ class Bestmodel:
             self.modelstr=HPOdict['Models']
             self.modelobj=model
         elif self.problemtype == ProblemType.TIME_SERIES:
-            pass
+            if HPOdict['Models'] == 'Arima':
+                
+
+                armodelobj = ARIMAModel()
+                armodelobj.fit(self.y_train, HPOdict.get('p', 1), HPOdict.get('q', 1), HPOdict.get('d', 1), self.freq)
+                # self.modelobj=arRes
+            elif HPOdict['Models'] == 'Sarima':
+                armodelobj = SARIMAModel()
+                armodelobj.fit_with_tests(self.y_train, HPOdict.get('p', 1), HPOdict.get('q', 1), HPOdict.get('d', 1),
+                                          HPOdict.get('sp', 1), HPOdict.get('sq', 1), HPOdict.get('sd', 1),HPOdict.get('ss', 7), self.freq) 
+                
+            # print("theytest",self.y_test1)
+            # print(len(self.y_test1))
+            y_pred = armodelobj.predict(len(self.y_test1))
+            # print("the ypred ", y_pred)
+            # print(y_pred)
+            # self
+            self.modelobj=armodelobj
+
+            mse = mean_squared_error(self.y_test1, y_pred)
+            print(f"Model MSE: {mse}")
+            self.modelstr=HPOdict['Models']
+            # self.modelobj=model
+
 
     def PredictModel(self,xtopred):
         if self.problemtype == ProblemType.CLASSIFICATION:
@@ -73,13 +99,18 @@ class Bestmodel:
             y_pred = self.modelobj.predict(xtopred)
             return y_pred
         elif self.problemtype == ProblemType.TIME_SERIES:
-            pass
+            y_pred=self.modelobj.predict(steps=len(xtopred))
+            return y_pred
     def saveModel(self):
         pass
     def splitTestData(self):
         #split self.X_test and self.y_test into two parts
-        self.X_test1, self.X_test2, self.y_test1, self.y_test2 = train_test_split(self.X_test, self.y_test, test_size=0.5, random_state=42)
-        
+        if self.problemtype!=ProblemType.TIME_SERIES:
+            self.X_test1, self.X_test2, self.y_test1, self.y_test2 = train_test_split(self.X_test, self.y_test, test_size=0.5, random_state=42)
+        elif self.problemtype==ProblemType.TIME_SERIES:
+            #split only the ytest to ytest1 and ytest2
+            self.y_test1, self.y_test2 = train_test_split(self.y_test, test_size=0.5, random_state=42)
+            self.X_test1='lolll'
     
 
 if __name__ =="__main__":
