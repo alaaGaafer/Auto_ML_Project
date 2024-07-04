@@ -138,3 +138,6 @@ def preprocessingAll(request):
                                                   low_actions, encoding_dict, reduce, auto_reduce,
                                                   num_components_to_keep)
         # return JsonResponse({'status': 'success', ' 
+def getsavedmodels(request):
+    if request.method == 'POST':
+        pass

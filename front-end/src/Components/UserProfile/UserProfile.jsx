@@ -1,6 +1,7 @@
 import React from "react";
 import { Link } from "react-router-dom";
 import { useLocation } from "react-router-dom";
+import { useNavigate } from "react-router-dom";
 
 export default function UserProfile() {
   const location = useLocation();
@@ -8,6 +9,7 @@ export default function UserProfile() {
   console.log("User Data:", userData);
   let username = userData.username;
   const parsedJsonData = JSON.parse(userData.datasets);
+  const navigate = useNavigate();
   //make the datasetID in the json object to id in another json the name is content the date 2023-01-01
   const newjson = parsedJsonData.map((item, index) => {
     return {
@@ -16,8 +18,8 @@ export default function UserProfile() {
       date: "2023-01-01",
     };
   });
-  console.log("New JSON:", newjson);
-  console.log("User Image:", userData.image);
+  // console.log("New JSON:", newjson);
+  // console.log("User Image:", userData.image);
   const userimageurl = `data:image/jpeg;base64,${userData.userimage}`;
   const user = {
     name: username,
@@ -25,6 +27,39 @@ export default function UserProfile() {
     profilePicture: userimageurl,
     posts: newjson,
   };
+  const sendDatasetToServer = async (postid) => {
+    const formData = new FormData();
+    formData.append("postid", postid);
+    try {
+      const response = await fetch(
+        "http://127.0.0.1:8000/retTuner/getsavedmodel",
+        {
+          method: "POST",
+          body: formData,
+        }
+      );
+
+      if (!response.ok) {
+        throw new Error("Network response was not ok");
+      }
+
+      const result = await response.json();
+      if (result.status === "success") {
+        const modelData = {
+          hyperparameters: result.hyperparameters,
+        };
+        navigate("/Output", { state: { modelData } });
+      }
+      //     /
+    } catch (error) {
+      console.error("Error sending dataset to server:", error);
+    }
+  };
+  const handleClick = (postid) => {
+    console.log("Post ID:", postid);
+    sendDatasetToServer(postid);
+  };
+
   //   [
   //     { id: 1, content: "This is my first project!", date: "2023-01-01" },
   //     { id: 2, content: "Hello!", date: "2023-02-01" },
@@ -58,13 +93,13 @@ export default function UserProfile() {
                       </p>
                       <p>{post.content}</p>
                       <div className="col-md-12 text-center">
-                        <Link
-                          to="/output"
+                        <button
                           className="btn btn-outline-secondary"
                           style={{ backgroundColor: "#dc3545", color: "white" }}
+                          onClick={() => handleClick(post.id)}
                         >
                           Use Model
-                        </Link>
+                        </button>
                       </div>
                     </div>
                   </div>

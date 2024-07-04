@@ -6,6 +6,8 @@ import { useFormik } from "formik";
 import axios from "axios";
 import { useHistory } from "react-router-dom";
 import { useNavigate } from "react-router-dom";
+// import { useContext } from "react";
+// import { AuthContextphone } from "../../Context/Context";
 // import { useLocation } from "react-router-dom";
 const mySchema = Yup.object({
   email: Yup.string().email("In-Valid Email").required("Email Is Required"),
@@ -35,6 +37,8 @@ export default function Login() {
         let dataset = response.data.datasets;
         let image = response.data.userimage;
         let phone = response.data.phone;
+        // const { setPhone } = useContext(AuthContextphone);
+        // setPhone(phone);
         const userData = {
           username: username,
           datasets: dataset,
