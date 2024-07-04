@@ -254,6 +254,7 @@ class MissingValues:
                         series_copy.loc[i] = series_copy.loc[i - 1] + pd.to_timedelta(dynamic_pattern, unit='D')
 
                     status = "success"
+                    message = "success"
                     series_copy = series_copy.drop(added_indices)
 
                 else:
@@ -264,7 +265,6 @@ class MissingValues:
                 # If the max number of sequential non-null dates is not sufficient, drop the row
                 message = "The Date column has too many nulls. Maybe you want to refill it manually and re-upload the data", "All nulls in the date column were dropped"
                 status = "failed"
-
         return series_copy, status, message
 
 

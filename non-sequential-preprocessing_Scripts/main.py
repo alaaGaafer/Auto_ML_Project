@@ -99,6 +99,8 @@ class AutoClean:
         pred_df = pred_df_without_y.copy()
         pred_df = EncodeCategorical().Encode(pred_df, encoding_dict)
         pred_df = HandlingImbalanceClasses().handle_class_imbalance(pred_df, self.y_column, imb_instruction)
+        if self.problem == "timeseries":
+            pred_df.set_index('ds', inplace=True)
 
     # historical_df is the same one returned from detections
     def Handling_calls(self, fill_na_dict, outliers_methods_input, imb_instruction, Norm_method,
@@ -141,7 +143,10 @@ class AutoClean:
         test_data = test_data.drop(columns=removed_columns)
 
         # Extract features and perform similarity search
-        meta_extractor, meta_features, best_models = self.extract_and_search_features(historical_df_copy)
+        if self.problem != "timeseries":
+            meta_extractor, meta_features, best_models = self.extract_and_search_features(historical_df_copy)
+        else:
+            best_models = ['Arima, Sarima']
         # ----------------------------------------------------------------------------------------------------------
         # resuming cleaning both df (because of extraction)
         # Encode categorical features and reduce dimensions if needed
@@ -175,6 +180,9 @@ class AutoClean:
         # --------------------------------------------------------------------------------------------
         # return cleand df
         historical_df_copy = pd.concat([train_data, test_data])
+        if self.problem == "timeseries":
+            train_data.set_index('ds', inplace=True)
+            test_data.set_index('ds', inplace=True)
 
         # Split train_data into features and labels
         x_train = train_data.drop(columns=[self.y_column])
@@ -184,7 +192,7 @@ class AutoClean:
         x_test = test_data.drop(columns=[self.y_column])
         y_test = test_data[self.y_column]
 
-        Bestmodelobj = Bestmodel(ProblemType.CLASSIFICATION, ["KNN", "LR", "RF"], x_train, x_test, y_train, y_test)
+        Bestmodelobj = Bestmodel(ProblemType.CLASSIFICATION, best_models, x_train, x_test, y_train, y_test)
         Bestmodelobj.splitTestData()
         Bestmodelobj.TrainModel()
         print(Bestmodelobj.modelobj)
@@ -237,7 +245,7 @@ def user_interaction():
         for col in categorical_columns:
             encoding_dict[col] = 'auto'
         for col in low_variance_columns:
-            encoding_dict[col] = 'auto'
+            low_actions[col] = 'auto'
 
         reduce = 'True'
         auto_reduce = 'True'

@@ -51,12 +51,12 @@ class AutoClean:
 
         nulls_columns = MissingValues().detect_nulls(self.historical_df)
         cols_with_outliers = Outliers().detect_outliers(self.historical_df)
-        historical_df = Duplicates().handle_dub(self.historical_df)
-        imbalance_detected = HandlingImbalanceClasses().detect_class_imbalance(historical_df, self.y_column)
-        df_without_y = historical_df.drop(columns=[self.y_column])
+        self.historical_df = Duplicates().handle_dub(self.historical_df)
+        imbalance_detected = HandlingImbalanceClasses().detect_class_imbalance(self.historical_df, self.y_column)
+        df_without_y = self.historical_df.drop(columns=[self.y_column])
         low_variance_columns, low_variance_info = HandlingColinearity().detect_low_variance(df_without_y)
 
-        return historical_df, nulls_columns, cols_with_outliers, imbalance_detected, low_variance_columns, categorical_columns
+        return self.historical_df, nulls_columns, cols_with_outliers, imbalance_detected, low_variance_columns, categorical_columns
 
     @staticmethod
     def _process_data(df: pd.DataFrame, fill_na_dict: dict, outliers_methods_input: tuple,
@@ -99,6 +99,8 @@ class AutoClean:
         pred_df = pred_df_without_y.copy()
         pred_df = EncodeCategorical().Encode(pred_df, encoding_dict)
         pred_df = HandlingImbalanceClasses().handle_class_imbalance(pred_df, self.y_column, imb_instruction)
+        if self.problem == "timeseries":
+            pred_df.set_index('ds', inplace=True)
 
     # historical_df is the same one returned from detections
     def Handling_calls(self, fill_na_dict, outliers_methods_input, imb_instruction, Norm_method,
@@ -175,6 +177,9 @@ class AutoClean:
         # --------------------------------------------------------------------------------------------
         # return cleand df
         historical_df_copy = pd.concat([train_data, test_data])
+        if self.problem == "timeseries":
+            train_data.set_index('ds', inplace=True)
+            test_data.set_index('ds', inplace=True)
 
         # Split train_data into features and labels
         x_train = train_data.drop(columns=[self.y_column])
@@ -237,7 +242,7 @@ def user_interaction():
         for col in categorical_columns:
             encoding_dict[col] = 'auto'
         for col in low_variance_columns:
-            encoding_dict[col] = 'auto'
+            low_actions[col] = 'auto'
 
         reduce = 'True'
         auto_reduce = 'True'

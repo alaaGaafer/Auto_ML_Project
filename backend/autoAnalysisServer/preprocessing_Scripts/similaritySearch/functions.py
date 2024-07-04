@@ -203,6 +203,7 @@ class MissingValues:
         series_copy = series.copy()
         # print("Nan locations: ", series_copy.index[series_copy.isnull()])
         status = "failed"
+        message = ""
         old_index = series_copy.index
         series_copy = series_copy.reindex(range(old_index.min(), old_index.max() + 1))
         added_indices = series_copy.index.difference(old_index).tolist()
@@ -254,6 +255,7 @@ class MissingValues:
                         series_copy.loc[i] = series_copy.loc[i - 1] + pd.to_timedelta(dynamic_pattern, unit='D')
 
                     status = "success"
+                    message= "success"
                     series_copy = series_copy.drop(added_indices)
 
                 else:
