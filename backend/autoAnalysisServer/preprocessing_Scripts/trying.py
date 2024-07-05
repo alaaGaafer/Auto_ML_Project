@@ -1,6 +1,6 @@
-from similaritySearch.functions import *
-from bestmodel import *
-from cashAlgorithm.smacClass import ProblemType
+from .similaritySearch.functions import *
+from .bestmodel import *
+from .cashAlgorithm.smacClass import ProblemType
 import pandas as pd
 
 
@@ -92,7 +92,11 @@ def Cleaning(df, problem, y_column, fill_na_dict, outliers_methods_input, imb_in
         y_column = 'y'
         frequency = calculate_date_frequency(df[date_col])
         df.set_index('ds', inplace=True)
-        train_data, test_data = train_test_split(df, test_size=0.2, random_state=42)
+        df = df.sort_index()
+        split_ratio = 0.8
+        split_index = int(len(df) * split_ratio)
+        train_data = df[:split_index]
+        test_data = df[split_index:]
     elif problem == "classification":
         train_data, test_data = train_test_split(df, test_size=0.2, random_state=42, stratify=df[y_column])
         train_data = train_data.reset_index(drop=True)

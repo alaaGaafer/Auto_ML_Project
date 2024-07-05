@@ -240,11 +240,11 @@ class Models:
     def timeser(self, configDict):
         model = configDict['Models']
         if model == 'Arima':
-            # print("Arima model",ARIMAModel.Arimasmac(self.Y_train,self.Y_test,p=configDict['p'],d=configDict['d'],q=configDict['q'],freq=self.freq))
+            # print("the loss: ",ARIMAModel.Arimasmac(self.Y_train, self.Y_test, p=configDict['p'], d=configDict['d'],q=configDict['q'], freq=self.freq))
             return ARIMAModel.Arimasmac(self.Y_train, self.Y_test, p=configDict['p'], d=configDict['d'],
                                         q=configDict['q'], freq=self.freq)
         elif model == 'Sarima':
-            print("Sarima model configurations: ", configDict)
+            # print("Sarima model configurations: ", configDict)
             return SARIMAModel.Sarimasmac(self.Y_train, self.Y_test, p=configDict['p'], q=configDict['q'], d=configDict['d'],
                                           P=configDict['sp'], Q=configDict['sq'], D=configDict['sd'], s=configDict['ss'],
                                           freq=self.freq)
@@ -304,7 +304,7 @@ class Facade:
     def TimeSeriesFacade(self):
         timeclassifier = Models(self.models, 'TimeSeries', self.X_train, self.Y_train, self.X_test, self.Y_test,
                                 freq=self.freq, s=self.s)
-        scenario = Scenario(timeclassifier.configspace(), deterministic=True, n_trials=10,trial_walltime_limit=15)
+        scenario = Scenario(timeclassifier.configspace(), deterministic=False, n_trials=10,trial_walltime_limit=15)
         smac = HyperparameterOptimizationFacade(scenario, timeclassifier.train, overwrite=True,
                                                 callbacks=[CustomCallback()])
         incumbent = smac.optimize()

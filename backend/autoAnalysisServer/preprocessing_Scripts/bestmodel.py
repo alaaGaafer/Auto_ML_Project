@@ -11,9 +11,9 @@ from sklearn.ensemble import RandomForestRegressor
 from xgboost import XGBRegressor
 from sklearn.model_selection import train_test_split
 from .cashAlgorithm.Models import ARIMAModel, SARIMAModel
-
+import joblib
 class Bestmodel:
-    def __init__(self,problemtype,choosednModels,X_train,X_text,y_train,y_test,freq='D',m=7) -> None:
+    def __init__(self,problemtype,choosednModels=None,X_train=None,X_text=None,y_train=None,y_test=None,freq='D',m=7) -> None:
         
         self.problemtype=problemtype
         self.X_train=X_train
@@ -24,6 +24,7 @@ class Bestmodel:
         self.freq=freq
         self.m=m
     def Getincumbent(self):
+        # print("the ytrain is: ",self.y_train.head())
         Facadee=smacClass.Facade(self.problemtype,self.choosenModels,self.X_train,self.X_test1,self.y_train,self.y_test1,self.freq,self.m)
         incumbent=Facadee.chooseFacade()
         # print(incumbent)
@@ -45,6 +46,7 @@ class Bestmodel:
             y_pred = model.predict(self.X_test1)
             accuracy = accuracy_score(self.y_test1, y_pred)
             print(f"Model accuracy: {accuracy * 100:.2f}%")
+            self.accuracy=accuracy
             self.modelstr=HPOdict['Models']
             self.modelobj=model
         elif self.problemtype == ProblemType.REGRESSION:
@@ -63,6 +65,7 @@ class Bestmodel:
             y_pred = model.predict(self.X_test1)
             mse = mean_squared_error(self.y_test1, y_pred)
             print(f"Model MSE: {mse}")
+            self.mse=mse
             self.modelstr=HPOdict['Models']
             self.modelobj=model
         elif self.problemtype == ProblemType.TIME_SERIES:
@@ -87,6 +90,7 @@ class Bestmodel:
 
             mse = mean_squared_error(self.y_test1, y_pred)
             print(f"Model MSE: {mse}")
+            self.mse=mse
             self.modelstr=HPOdict['Models']
             # self.modelobj=model
 
@@ -101,15 +105,26 @@ class Bestmodel:
         elif self.problemtype == ProblemType.TIME_SERIES:
             y_pred=self.modelobj.predict(steps=len(xtopred))
             return y_pred
-    def saveModel(self):
-        pass
+    def saveModel(self,dsid):
+        path=f"preprocessing_Scripts/models/{dsid}.pkl"
+        joblib.dump(self.modelobj,path)
+        return True
+    def loadModel(self,dsid):
+        path=f"models/{dsid}.pkl"
+        model=joblib.load(path)
+        self.modelobj=model
+        return True
     def splitTestData(self):
         #split self.X_test and self.y_test into two parts
         if self.problemtype!=ProblemType.TIME_SERIES:
+
             self.X_test1, self.X_test2, self.y_test1, self.y_test2 = train_test_split(self.X_test, self.y_test, test_size=0.5, random_state=42)
         elif self.problemtype==ProblemType.TIME_SERIES:
-            #split only the ytest to ytest1 and ytest2
-            self.y_test1, self.y_test2 = train_test_split(self.y_test, test_size=0.5, random_state=42)
+            split_ratio = 0.5  
+            split_index = int(len(self.y_test) * split_ratio)
+
+            self.y_test1 = self.y_test[:split_index]
+            self.y_test2 = self.y_test[split_index:]
             self.X_test1='lolll'
     
 

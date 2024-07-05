@@ -110,12 +110,12 @@ def preprocessingAll(request):
         data_list = json.loads(uploaded_file)
         df=pd.DataFrame(data_list)
         # print("the head is: ", df.head())
-        istime_series = request.POST.get('isTimeSeries')
+        # istime_series = request.POST.get('isTimeSeries')
         response_variable = request.POST.get('responseVariable')
         problemtype = request.POST.get('problemtype')
         datasetid = request.POST.get('datasetid')
         # print("the problem type is",problemtype)
-        print(problemtype)
+        # print(problemtype)
         problemtype = problemtype.lower()
         if problemtype=='timeseries':
             trainData, testData,frequency = user_interaction(df,problemtype,response_variable,date_col='Date')
@@ -123,7 +123,17 @@ def preprocessingAll(request):
             dummy='lol'
             Bestmodelobj=Bestmodel(ProblemType.TIME_SERIES,choosenModels,dummy,dummy,trainData,testData,frequency)
             Bestmodelobj.splitTestData()
-            Bestmodelobj.trainModels()
+            Bestmodelobj.TrainModel()
+            modelname=Bestmodelobj.modelstr
+            # modelaccuracy=Bestmodelobj.accuracy
+            modelmse=Bestmodelobj.mse
+            Bestmodelobj.saveModel(datasetid)
+        elif problemtype =='classification':
+            pass
+        elif problemtype == 'regression':
+            pass
+        print("modelname",modelname)
+        print("modelmse",modelmse)
             
         
 def getsavedmodels(request):

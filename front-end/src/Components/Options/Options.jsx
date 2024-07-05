@@ -93,7 +93,7 @@ export default function Options({ dataset }) {
       const result = await response.json();
       if (result.status === "success") {
         // setShareFile(result);
-        // navigate("/option");
+        navigate("/option");
         console.log("Server response:", result);
       }
       // console.log("Server response:", result);

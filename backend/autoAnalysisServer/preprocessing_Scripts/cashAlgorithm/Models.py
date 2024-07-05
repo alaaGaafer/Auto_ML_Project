@@ -15,10 +15,19 @@ class ARIMAModel:
 
     @staticmethod
     def Arimasmac(train, test, p, d, q, freq='D'):
+        
         train = train.asfreq(freq)
         test = test.asfreq(freq)
+        
+
+
         model_fit = ARIMA(train['y'], order=(p, d, q)).fit()
         forecast_values = model_fit.forecast(steps=len(test))
+        # print ("the forecast values: ",forecast_values)
+        # print("the test values: ",test['y'])
+
+        # print("the forcast abs minus the test: ",np.abs((forecast_values - test['y'])))
+        print("the meanloss: ",np.mean(np.abs((forecast_values - test['y']) / test['y']) * 100))
         return np.mean(np.abs((forecast_values - test['y']) / test['y'])) * 100
 
     def fit(self, train, p, d, q, freq='D'):
