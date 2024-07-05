@@ -1,27 +1,51 @@
-import React, { useState } from "react";
+import React, { useState, useContext } from "react";
 import Papa from "papaparse";
 import { useNavigate } from "react-router-dom";
+import { useLocation } from "react-router-dom";
+import { dataContext } from "../../Context/Context";
 
 const Output = () => {
+  const { ShareFile } = useContext(dataContext);
+  const datasetid = ShareFile.datasetid;
   const [bestModel, setBestModel] = useState([]);
-  const [hyperparameters, setHyperparameters] = useState([]);
+  const [metrices, setMetrices] = useState([]);
   const [csvData, setCsvData] = useState([]);
+  const [dataset, setDataset] = useState("");
   const [isDatasetLoaded, setIsDatasetLoaded] = useState(false);
+  const [isjsonreturned, setIsjsonreturned] = useState(false);
+  const location = useLocation();
+  const modelData = location.state?.modelData;
+  // const modelData = {
+  //   accuracy: result.accuracy,
+  //   MSE: result.MSE,
+  //   modelname: result.modelname,
+  // };
+
+  const accuracy = modelData.accuracy;
+  const MSE = modelData.MSE;
+  const modelname = modelData.modelname;
+  React.useEffect(() => {
+    if (accuracy > 0) {
+      // console.log("Accuracy is greater than 0");
+      setMetrices(["Accuracy ", accuracy]);
+    }
+    if (MSE > 0) {
+      // console.log("MSE is greater than 0");
+      setMetrices("MSE: ", [MSE]);
+    }
+    setBestModel([modelname]);
+  }, []);
+  const listStyle = {
+    display: "flex",
+    listStyleType: "none",
+    padding: 10,
+    margin: 10,
+  };
+  const itemStyle = {
+    marginRight: "10px", // Adjust the spacing between items as needed
+  };
 
   // Fetch data from the backend
-  React.useEffect(() => {
-    fetch("/api/best-model")
-      .then((response) => response.json())
-      .then((data) => setBestModel(data));
-
-    fetch("/api/hyperparameters")
-      .then((response) => response.json())
-      .then((data) => setHyperparameters(data));
-
-    fetch("/api/csv-data")
-      .then((response) => response.json())
-      .then((data) => setCsvData(data));
-  }, []);
 
   const handleDatasetChange = (event) => {
     const file = event.target.files[0];
@@ -30,6 +54,7 @@ const Output = () => {
     if (file) {
       const extension = file.name.split(".").pop().toLowerCase();
       if (allowedExtensions.includes(extension)) {
+        setDataset(file);
         parseFile(file);
       } else {
         alert("Please upload a CSV or Excel file.");
@@ -49,19 +74,37 @@ const Output = () => {
       },
     });
   };
-  const handlePredictions = () => {
-    fetch("/api/predict", {
-      method: "Post",
-      headers: {},
-      body: JSON.stringify({ data: csvData }),
-    })
-      .then((response) => response.json())
-      .then((data) => {
-        console.log("Prediction results:", data);
-      })
-      .catch((error) => {
-        console.error("Error making predictions:", error);
+  const sendDatasetToServer = async () => {
+    const formData = new FormData();
+    formData.append("dataset", dataset);
+    formData.append("datasetid", datasetid);
+    try {
+      const response = await fetch("http://127.0.0.1:8000/retTuner/predict", {
+        method: "POST",
+        body: formData,
       });
+
+      if (!response.ok) {
+        throw new Error("Network response was not ok");
+      }
+
+      const result = await response.json();
+      if (result.status === "success") {
+        // setShareFile(result);
+        const parsedJsonData = JSON.parse(result.df_copy_json);
+
+        console.log("Parsed JSON data:", parsedJsonData);
+        setCsvData(parsedJsonData);
+        setIsjsonreturned(true);
+      }
+      // console.log("Server response:", result);
+      // Handle the server response here
+    } catch (error) {
+      console.error("Error sending dataset to server:", error);
+    }
+  };
+  const handlePredictions = () => {
+    sendDatasetToServer();
   };
 
   const handleUploadClick = () => {
@@ -69,8 +112,12 @@ const Output = () => {
   };
 
   const DynamicTable = ({ rowLimit }) => {
-    const columns = csvData.length > 0 ? Object.keys(csvData[0]) : [];
+    // check if data is csvformat or json
 
+    let columns = csvData.length > 0 ? Object.keys(csvData[0]) : [];
+    if (isjsonreturned == true) {
+      columns = Object.keys(csvData[0]);
+    }
     const renderTableHeader = () => {
       return columns.map((key, index) => <th key={index}>{key}</th>);
     };
@@ -104,10 +151,12 @@ const Output = () => {
             <div key={index}>{item}</div>
           ))}
         </div>
-        <h3>Hyperparameters</h3>
-        <ul>
-          {hyperparameters.map((item, index) => (
-            <li key={index}>{item}</li>
+        <h3>Metrices</h3>
+        <ul style={listStyle}>
+          {metrices.map((item, index) => (
+            <li key={index} style={itemStyle}>
+              {item}
+            </li>
           ))}
         </ul>
         <button

@@ -20,6 +20,8 @@ class datasetsData(models.Model):
     problemType = models.CharField(max_length=100)
     description = models.TextField()
     modelname = models.CharField(max_length=100)
+    modelaccuracy = models.FloatField(null=True)
+    modelmse = models.FloatField(null=True)
     date= models.CharField(max_length=100)
     responseVariable = models.CharField(max_length=100)
 class preprocessMethodData(models.Model):

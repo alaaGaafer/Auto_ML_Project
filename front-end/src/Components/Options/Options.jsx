@@ -3,6 +3,7 @@ import React, { useState, useEffect, useContext } from "react";
 import { dataContext } from "../../Context/Context";
 import axios from "axios";
 import { useLocation } from "react-router-dom";
+import { useNavigate } from "react-router-dom";
 
 export default function Options({ dataset }) {
   const { ShareFile } = useContext(dataContext);
@@ -11,6 +12,7 @@ export default function Options({ dataset }) {
   const [notificationMessage, setNotificationMessage] = useState("");
   const [showNotification, setShowNotification] = useState(false);
   const location = useLocation();
+  const navigate = useNavigate();
   const modelData = location.state?.modelData;
   // console.log("modelData", modelData);
 
@@ -92,12 +94,15 @@ export default function Options({ dataset }) {
 
       const result = await response.json();
       if (result.status === "success") {
-        // setShareFile(result);
-        navigate("/option");
+        const modelData = {
+          accuracy: result.accuracy,
+          MSE: result.MSE,
+          modelname: result.modelname,
+        };
+        console.log("modelData", modelData);
+        navigate("/Output", { state: { modelData } });
         console.log("Server response:", result);
       }
-      // console.log("Server response:", result);
-      // Handle the server response here
     } catch (error) {
       console.error("Error sending dataset to server:", error);
     }

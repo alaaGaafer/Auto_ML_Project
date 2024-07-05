@@ -6,6 +6,7 @@ urlpatterns = [
     path('notify', views.notify, name='notify'),
     path('preprocessingAll', views.preprocessingAll, name='preprocessingAll'),
     path('getsavedmodels', views.getsavedmodels, name='getsavedmodels'),
+    path('predict', views.predict, name='predict'),
     path('signup/', views.signup, name='signup'),
 ]
 

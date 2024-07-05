@@ -12,6 +12,7 @@ from xgboost import XGBRegressor
 from sklearn.model_selection import train_test_split
 from .cashAlgorithm.Models import ARIMAModel, SARIMAModel
 import joblib
+import pandas as pd
 class Bestmodel:
     def __init__(self,problemtype,choosednModels=None,X_train=None,X_text=None,y_train=None,y_test=None,freq='D',m=7) -> None:
         
@@ -23,6 +24,8 @@ class Bestmodel:
         self.choosenModels=choosednModels
         self.freq=freq
         self.m=m
+        self.accuracy=None
+        self.mse=None
     def Getincumbent(self):
         # print("the ytrain is: ",self.y_train.head())
         Facadee=smacClass.Facade(self.problemtype,self.choosenModels,self.X_train,self.X_test1,self.y_train,self.y_test1,self.freq,self.m)
@@ -98,19 +101,22 @@ class Bestmodel:
     def PredictModel(self,xtopred):
         if self.problemtype == ProblemType.CLASSIFICATION:
             y_pred = self.modelobj.predict(xtopred)
-            return y_pred
+            Concatedyandx = pd.concat([xtopred, y_pred], axis=1)
+            return Concatedyandx
         elif self.problemtype == ProblemType.REGRESSION:
             y_pred = self.modelobj.predict(xtopred)
-            return y_pred
+            concatedyandx=pd.concat([xtopred,y_pred],axis=1)
+            return Concatedyandx
         elif self.problemtype == ProblemType.TIME_SERIES:
             y_pred=self.modelobj.predict(steps=len(xtopred))
-            return y_pred
+            concatedyandx=pd.concat([xtopred,y_pred],axis=1)
+            return concatedyandx
     def saveModel(self,dsid):
         path=f"preprocessing_Scripts/models/{dsid}.pkl"
         joblib.dump(self.modelobj,path)
         return True
     def loadModel(self,dsid):
-        path=f"models/{dsid}.pkl"
+        path=f"preprocessing_Scripts/models/{dsid}.pkl"
         model=joblib.load(path)
         self.modelobj=model
         return True

@@ -94,7 +94,7 @@ def notify(request):
         response_variable = request.POST.get('responseVariable')
         #add theseData to datasetsData
         print(phone)
-        dataset = datasetsData.objects.create(datasetID=datasetid, phone=usersData.objects.get(phone=phone), datasetName=file_name, problemType=problemtype, description=description, modelname='None',date=today, responseVariable=response_variable)
+        dataset = datasetsData.objects.create(datasetID=datasetid, phone=usersData.objects.get(phone=phone), datasetName=file_name, problemType=problemtype, description=description, modelname='None',date=today, responseVariable=response_variable, modelaccuracy=0, modelmse=0)
         dataset.save()
         df_copy_json = toprocesseddf.to_json(orient='records')
         response_data= {'status': 'success', 'df_copy_json': df_copy_json,'datasetid': datasetid} 
@@ -122,19 +122,64 @@ def preprocessingAll(request):
             choosenModels=['Arima','Sarima']
             dummy='lol'
             Bestmodelobj=Bestmodel(ProblemType.TIME_SERIES,choosenModels,dummy,dummy,trainData,testData,frequency)
-            Bestmodelobj.splitTestData()
-            Bestmodelobj.TrainModel()
-            modelname=Bestmodelobj.modelstr
-            # modelaccuracy=Bestmodelobj.accuracy
-            modelmse=Bestmodelobj.mse
-            Bestmodelobj.saveModel(datasetid)
+
         elif problemtype =='classification':
-            pass
+            choosenModels=["KNN", "LR", "RF"]
+            x_train, y_train, x_test, y_test = user_interaction(df, problemtype, response_variable, date_col=None)
+            Bestmodelobj = Bestmodel(ProblemType.CLASSIFICATION, choosenModels, x_train,x_test,y_train,y_test)
         elif problemtype == 'regression':
-            pass
+            x_train, y_train, x_test, y_test = user_interaction(df, problemtype, response_variable, date_col="Date")
+            choosenModels = ['LinearRegression', "Lasso"]
+            Bestmodelobj = Bestmodel(ProblemType.REGRESSION, choosenModels, x_train, x_test, y_train, y_test)
+        
+        Bestmodelobj.splitTestData()
+        Bestmodelobj.TrainModel()
+        modelname = Bestmodelobj.modelstr
+        modelmse = Bestmodelobj.mse
+        modelaccuracy = Bestmodelobj.accuracy
+        Bestmodelobj.saveModel(datasetid)
+
         print("modelname",modelname)
         print("modelmse",modelmse)
-            
+        print("modelaccuracy",modelaccuracy)
+        dataset = datasetsData.objects.get(datasetID=datasetid)
+        print(modelmse)
+        print(modelaccuracy)
+        if modelmse is  None:
+            modelmse = 0
+        if modelaccuracy is None:
+            modelaccuracy = 0
+        dataset.modelname = modelname
+        dataset.modelmse = modelmse
+        dataset.modelaccuracy = modelaccuracy
+        dataset.save()
+        return JsonResponse({'status': 'success', 'accuracy': modelaccuracy, 'mse': modelmse, 'modelname': modelname})
+    else:
+        return JsonResponse({'status': 'fail', 'message': 'Only POST method is allowed.'}, status=405)
+@csrf_exempt
+def predict(request):
+    if request.method == 'POST':
+        uploaded_file = request.FILES['dataset']
+        datasetid = request.POST.get('datasetid')
+        dataset = datasetsData.objects.get(datasetID=datasetid)
+        ProblemType = dataset.problemType
+        responsevariable=dataset.responseVariable
+        Bestmodelobj = Bestmodel(problemtype=ProblemType)
+        print("theuploadedfile is",uploaded_file.name)
+        Bestmodelobj.loadModel(datasetid)
+        df=pd.read_csv(uploaded_file)
+        print(df.head())
+
+        # zeftcleanedDF=
+        # cleanneddf=
+        # predictions = Bestmodelobj.predict(zeftcleanedDF)
+        # print(predictions)
+        droplastcolumn = df.drop(df.columns[-1], axis=1)
+        df_copy_json = droplastcolumn.to_json(orient='records')
+        response_data= {'status': 'success', 'df_copy_json': df_copy_json} 
+        return JsonResponse(response_data, safe=False)
+
+
         
 def getsavedmodels(request):
     if request.method == 'POST':

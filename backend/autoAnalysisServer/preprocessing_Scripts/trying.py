@@ -3,7 +3,42 @@ from .bestmodel import *
 from .cashAlgorithm.smacClass import ProblemType
 import pandas as pd
 
+def prediction_data(self, pred_df, fill_na_dict, outliers_methods_input, Norm_method, lowvariance_actions,
+                        encoding_dict, Bestmodelobj, num_components_to_keep=None, pca_model=None):
+        if self.date_col:
+            pred_df[self.date_col] = pd.to_datetime(pred_df[self.date_col])
 
+        if self.problem == "timeseries" and self.date_col:
+            pred_df.rename(columns={self.date_col: 'ds'}, inplace=True)
+            self.date_col = 'ds'
+
+        pred_df, carednality_messages = RemoveIDColumn.remove_high_cardinality_columns(pred_df)
+        pred_df, deletion_messages = MissingValues().del_high_null_cols(pred_df)
+
+        pred_fill_na_dict = {}
+        null_info = pred_df.isnull().sum()
+        pred_nulls_columns = null_info[null_info > 0].index
+        for col in pred_nulls_columns:
+            if col in fill_na_dict:
+                pred_fill_na_dict[col] = fill_na_dict[col]
+            else:
+                pred_fill_na_dict[col] = "auto"
+
+        pred_df = self._process_data(pred_df, pred_fill_na_dict, outliers_methods_input, Norm_method)
+
+        pred_df = HandlingColinearity().handle_low_variance(pred_df, lowvariance_actions)
+        pred_df, handling_info = HandlingColinearity().handling_colinearity(pred_df)
+
+        pred_df = EncodeCategorical().Encode(pred_df, encoding_dict)
+
+        if pca_model:
+            numerical_columns = pred_df.select_dtypes(include=[np.number]).columns
+            pred_df = HandlingReduction().feature_reduction(pred_df[numerical_columns],
+                                                            num_components_to_keep, pca_model)
+
+
+        y_pred = Bestmodelobj.basePredictModel(pred_df)
+        return y_pred
 def calculate_date_frequency(series):
     """
     Calculate the most common frequency (interval) of a datetime series.
