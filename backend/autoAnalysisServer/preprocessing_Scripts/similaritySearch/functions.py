@@ -255,7 +255,7 @@ class MissingValues:
                         series_copy.loc[i] = series_copy.loc[i - 1] + pd.to_timedelta(dynamic_pattern, unit='D')
 
                     status = "success"
-                    message= "success"
+                    message = "success"
                     series_copy = series_copy.drop(added_indices)
 
                 else:
