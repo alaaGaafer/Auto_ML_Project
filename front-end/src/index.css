@@ -1,38 +1,37 @@
-:root{
-  --mainColor:#2D3250;
-  --redColor: #A52E28;
-
+:root {
+  --mainColor: #2d3250;
+  --redColor: #a52e28;
 }
 
-nav{
+nav {
   background-color: var(--mainColor);
 }
 
-nav a{
+nav a {
   color: #fff !important;
 }
 
-nav .navbar-brand .img{
-  width:40px;
-  height:40px;
-  border-radius:50%;
+nav .navbar-brand .img {
+  width: 40px;
+  height: 40px;
+  border-radius: 50%;
 }
 
-nav .nav-item .active{
+nav .nav-item .active {
   background-color: var(--redColor);
   border-radius: 5px;
 }
 
-#about .container{
+#about .container {
   padding: 0;
 }
 
-#about h1{
+#about h1 {
   position: relative;
   padding-bottom: 5px;
 }
-#about h1::before{
-  content: '';
+#about h1::before {
+  content: "";
   width: 100px;
   height: 3px;
   background-color: var(--redColor);
@@ -40,21 +39,18 @@ nav .nav-item .active{
   bottom: 0;
   left: 50%;
   transform: translateX(-50%);
-
 }
 
-#footer{
+#footer {
   background-color: var(--redColor);
   color: #fff;
 }
 
-#footer p{
+#footer p {
   font-size: 12px;
   line-height: 0;
   padding-bottom: 5px;
-
 }
-
 
 #service {
   background-image: url(../src/Assets/images/1.png);
@@ -64,27 +60,26 @@ nav .nav-item .active{
 }
 
 #service .container {
-  background-color: #F9F9F9;
+  background-color: #f9f9f9;
   width: 65% !important;
 }
 
-#service h6{
+#service h6 {
   font-weight: 700;
 }
 
-#service p{
+#service p {
   font-size: 14px;
 }
 
-
-#register{
+#register {
   background-image: url(../src/Assets/images/3.png);
   background-size: cover;
   background-repeat: no-repeat;
   background-position: center;
 }
 
-.form-control:focus{
+.form-control:focus {
   box-shadow: none !important;
   border-color: var(--redColor) !important;
 }
@@ -92,7 +87,7 @@ nav .nav-item .active{
 #register p {
   font-size: 14px;
 }
-#register .hidden{
+#register .hidden {
   font-size: 12px;
   font-weight: 700;
   padding: 0;
@@ -103,57 +98,54 @@ nav .nav-item .active{
   background-image: url(../src/Assets/images/2.png);
   background-size: cover;
   background-repeat: no-repeat;
-  background-position:left;
+  background-position: left;
 }
 
-#login p{
+#login p {
   font-size: 12px;
 }
 
-#login .hidden{
+#login .hidden {
   font-size: 12px;
   font-weight: 700;
   padding: 0;
   margin: 0;
 }
 
-
-#readmore h2{
-  position:relative;
+#readmore h2 {
+  position: relative;
   padding-block: 10px;
 }
 
-#readmore h2:before{
-  content: '';
+#readmore h2:before {
+  content: "";
   width: 80px;
   height: 3px;
   background-color: var(--redColor);
   position: absolute;
   bottom: 0;
   left: 0;
-
 }
 
-
- body{
+body {
   background-color: var(--redColor);
- }
+}
 #getmodel {
   background-image: url(../src/Assets/images/5.jpg);
   background-size: cover;
   background-repeat: no-repeat;
-  background-position:left;
+  background-position: left;
   /* height: 500px; */
   display: flex;
   justify-content: center;
   align-items: center;
 }
-#getmodel h1{
+#getmodel h1 {
   position: relative;
   padding-bottom: 5px;
 }
-#getmodel h1::before{
-  content: '';
+#getmodel h1::before {
+  content: "";
   width: 70px;
   height: 3px;
   background-color: var(--redColor);
@@ -161,32 +153,28 @@ nav .nav-item .active{
   bottom: 0;
   left: 50%;
   transform: translateX(-50%);
-
 }
 
-#getmodel label{
+#getmodel label {
   font-weight: 600;
 }
 
-
-#error h1{
+#error h1 {
   font-size: 90px;
   font-weight: 900;
 }
-#error button:hover{
+#error button:hover {
   background-color: var(--redColor) !important;
 }
 
-#error button:hover a{
-  color:#fff !important;
+#error button:hover a {
+  color: #fff !important;
 }
 
 .options-container {
-  background-image: url('../src/Assets/images/1.png');
+  background-image: url("../src/Assets/images/1.png");
   background-size: cover;
-  
 }
-
 
 /*#profile h2, p {
   color: #fff;
@@ -234,8 +222,8 @@ nav .nav-item .active{
 }
 
 #profile .post-date {
-  margin-bottom: 0.5rem; 
-  font-size: 0.83rem; 
+  margin-bottom: 0.5rem;
+  font-size: 0.83rem;
   color: #6c757d;
 }
 
@@ -245,7 +233,7 @@ nav .nav-item .active{
   margin: 0;
   font-size: 1em;
   min-width: auto;
-  box-shadow: 0 0 20px rgba(0, 0, 0, 0.15)
+  box-shadow: 0 0 20px rgba(0, 0, 0, 0.15);
 }
 
 #options.custom-table thead tr {
@@ -262,7 +250,6 @@ nav .nav-item .active{
 
 #options.custom-table tbody tr {
   border-bottom: 1px solid black;
-
 }
 
 #options.custom-table tbody tr:nth-of-type(even) {
@@ -282,65 +269,63 @@ nav .nav-item .active{
   flex-shrink: 0;
   background-color: red;
 }*/
-#output .output-container{
+#output .output-container {
   display: flex;
   flex-direction: row;
   height: 100vh;
   background-color: white;
 }
 
-#output .custom-table{
+#output .custom-table {
   background-color: white;
-  color :black
-
+  color: black;
 }
 
- .left-section {
+.left-section {
   width: 30%;
   padding: 20px;
   border-right: 1px solid #ccc;
   overflow-y: auto;
-  color:black; 
+  color: black;
   background-color: white;
 }
 
 .left-section h3 {
   margin-bottom: 50px;
-  color:black; 
+  color: black;
   background-color: white;
-
 }
 
 .right-section {
   width: 70%;
   padding: 20px;
   overflow-y: auto;
-  color: black; 
+  color: black;
   background-color: white;
 }
 
 #Output table {
   width: 100%;
   border-collapse: collapse;
-  color: white; 
+  color: white;
 }
 
-th, td {
+th,
+td {
   border: 1px solid #ccc;
   padding: 8px;
   text-align: left;
-
 }
-th{
-  background-color: black ;
-  color:white 
+th {
+  background-color: black;
+  color: white;
 }
 
 #userprofile {
   background-image: url(../src/Assets/images/5.jpg);
   background-size: cover;
   background-repeat: no-repeat;
-  background-position:left;
+  background-position: left;
   /* height: 500px; */
   display: flex;
   justify-content: center;

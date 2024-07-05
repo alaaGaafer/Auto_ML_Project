@@ -1,6 +1,6 @@
 
-from cashAlgorithm import smacClass
-from cashAlgorithm.smacClass import ProblemType
+from .cashAlgorithm import smacClass
+from .cashAlgorithm.smacClass import ProblemType
 from sklearn.neighbors import KNeighborsClassifier
 from sklearn.linear_model import LogisticRegression
 from sklearn.ensemble import RandomForestClassifier
@@ -10,7 +10,7 @@ from sklearn.linear_model import LinearRegression, Lasso, Ridge
 from sklearn.ensemble import RandomForestRegressor
 from xgboost import XGBRegressor
 from sklearn.model_selection import train_test_split
-from cashAlgorithm.Models import ARIMAModel, SARIMAModel
+from .cashAlgorithm.Models import ARIMAModel, SARIMAModel
 
 class Bestmodel:
     def __init__(self,problemtype,choosednModels,X_train,X_text,y_train,y_test,freq='D',m=7) -> None:

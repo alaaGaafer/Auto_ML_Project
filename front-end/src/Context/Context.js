@@ -9,13 +9,3 @@ export function DataContextprovider({ children }) {
     </dataContext.Provider>
   );
 }
-
-export let authContextphone = createContext("");
-export function AuthContextphone({ children }) {
-  let [phone, setPhone] = useState("");
-  return (
-    <authContextphone.Provider value={{ phone, setPhone }}>
-      {children}
-    </authContextphone.Provider>
-  );
-}

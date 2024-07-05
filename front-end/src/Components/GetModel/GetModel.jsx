@@ -3,16 +3,20 @@ import React, { useContext, useState } from "react";
 import { Link, useHistory } from "react-router-dom";
 import { useNavigate } from "react-router-dom";
 import { dataContext } from "../../Context/Context";
+import { AuthContextPhone } from "../../Context/Contextt";
 
 export default function GetModel() {
   const [dataset, setDataset] = useState(null);
   const [isDatasetLoaded, setIsDatasetLoaded] = useState(false);
   const [responseVariable, setResponseVariable] = useState("");
   const [problemtype, setproblemtype] = useState("");
+  const [description, setDescription] = useState("");
   const [isTimeSeries, setIsTimeSeries] = useState(false);
   const { setShareFile } = useContext(dataContext);
+  const { phone, setPhone } = useContext(AuthContextPhone);
   const navigate = useNavigate();
-  useContext(dataContext);
+  // useContext(dataContext);
+  // console.log("Phone:", phone);
   const handleDatasetChange = (event) => {
     const file = event.target.files[0];
     const allowedExtensions = ["csv", "xls", "xlsx"];
@@ -57,6 +61,13 @@ export default function GetModel() {
   const handleResponseVariableChange = (event) => {
     setResponseVariable(event.target.value);
   };
+  const handleDescriptionChange = (event) => {
+    // add default value
+    if (event.target.value.length === 0) {
+      setDescription("No description provided");
+    }
+    setDescription(event.target.value);
+  };
 
   const sendDatasetToServer = async () => {
     const formData = new FormData();
@@ -64,6 +75,8 @@ export default function GetModel() {
     formData.append("responseVariable", responseVariable);
     formData.append("isTimeSeries", isTimeSeries);
     formData.append("problemtype", problemtype);
+    formData.append("description", description);
+    formData.append("phone", phone);
 
     try {
       const response = await fetch("http://127.0.0.1:8000/retTuner/notify", {
@@ -151,6 +164,17 @@ export default function GetModel() {
               name="responseVariable"
               id="responseVariable"
             />
+            <label className="my-2" htmlFor="description">
+              Description:
+            </label>
+            <textarea
+              onChange={handleDescriptionChange}
+              className="form-control"
+              name="description"
+              id="description"
+              cols="30"
+              rows="5"
+            ></textarea>
             <button
               type="submit"
               className="btn btn-danger my-2 d-block m-auto text-capitalize"

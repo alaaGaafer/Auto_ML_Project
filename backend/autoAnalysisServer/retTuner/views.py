@@ -5,8 +5,10 @@ from .models import usersData, datasetsData
 import pandas as pd
 import base64
 from preprocessing_Scripts.main import AutoClean
-
-
+from datetime import date
+from preprocessing_Scripts.trying import calculate_date_frequency,Detections_,_process_data,Cleaning,user_interaction
+from preprocessing_Scripts.bestmodel import Bestmodel
+from preprocessing_Scripts.cashAlgorithm.smacClass import ProblemType
 
 # Create your views here.
 def getPhoto(phone):
@@ -54,6 +56,8 @@ def inputvalidation(request):
             # print(userimage_file.read())
             userimage = base64.b64encode(userimage_file.read()).decode('utf-8')
             datasets = datasetsData.objects.filter(phone=phone)
+            print(list(datasets.values()))
+            print(datasets)
             datasets_json = json.dumps(list(datasets.values()))
             parameters['status'] = 'success'
             parameters['username'] = username
@@ -71,26 +75,29 @@ def notify(request):
     if request.method == 'POST':
 
         uploaded_file = request.FILES['dataset']
+        if uploaded_file.name.endswith('.csv'):
+            toprocesseddf=pd.read_csv(uploaded_file)
+        elif uploaded_file.name.endswith('.xlsx'):
+            toprocesseddf=pd.read_excel(uploaded_file)
+        elif uploaded_file.name.endswith('.xls'):
+            toprocesseddf=pd.read_excel(uploaded_file)
+        # toprocesseddf=pd.read_csv(uploaded_file)
+        #make variable called the datasetid which is 'ds+maxidindex+1'
+        #make date vairable which is today's date from datetime library
+        
         file_name = uploaded_file.name
-        toprocesseddf=pd.read_csv(uploaded_file)
-
-        response_variable = request.POST.get('responseVariable')
-        is_time_series = request.POST.get('isTimeSeries')
+        datasetid = 'ds' + str(datasetsData.objects.all().count() + 1)
+        today = date.today()
+        phone = request.POST.get('phone')
         problemtype = request.POST.get('problemtype')
-        autocleanobj=AutoClean(toprocesseddf, response_variable, problemtype)
-        df_copy, nulls_dict, outlier_info, imbalance_info, low_variance_columns, categorical_columns = autocleanobj.Detections()
-
-        # serializable_nulls_dict = convert_dict_to_serializable(nulls_dict)
-        #convert df_copy to json
-        df_copy_json = df_copy.to_json(orient='records')
-        # print('Nulls dict:', df_copy_json)
-        # serialized_nulls_dict = json.dumps(nulls_dict, default=convert_float64_dtype)
-        response_data= {'status': 'success', 'df_copy_json': df_copy_json} 
-
-        # response_data_serializable = json.dumps(response_data, default=convert_float64_dtype)
-
-
-
+        description = request.POST.get('description')
+        response_variable = request.POST.get('responseVariable')
+        #add theseData to datasetsData
+        print(phone)
+        dataset = datasetsData.objects.create(datasetID=datasetid, phone=usersData.objects.get(phone=phone), datasetName=file_name, problemType=problemtype, description=description, modelname='None',date=today, responseVariable=response_variable)
+        dataset.save()
+        df_copy_json = toprocesseddf.to_json(orient='records')
+        response_data= {'status': 'success', 'df_copy_json': df_copy_json,'datasetid': datasetid} 
         return JsonResponse(response_data, safe=False)
     else:
         return JsonResponse({'status': 'fail', 'message': 'Only POST method is allowed.'}, status=405)
@@ -106,38 +113,19 @@ def preprocessingAll(request):
         istime_series = request.POST.get('isTimeSeries')
         response_variable = request.POST.get('responseVariable')
         problemtype = request.POST.get('problemtype')
-        print("the problem type is",problemtype)
-
-        autocleanobj=AutoClean(df, response_variable, problemtype)
-
-        df_copy, nulls_dict, outlier_info, imbalance_info, low_variance_columns, categorical_columns = autocleanobj.Detections()
-        fill_na_dict = {}
-        for col in nulls_dict:
-            fill_na_dict[col] = 'auto'
-
-        # Handling outliers
-        outliers_method_input = ('z_score', 'auto', 3)
-        if imbalance_info:
-            imb_instruction = "auto"
-        else:
-            imb_instruction=None
-        Norm_method = "auto"
-        low_actions = {}
-        encoding_dict = {}
-
-        for col in categorical_columns:
-            encoding_dict[col] = 'auto'
-        for col in low_variance_columns:
-            encoding_dict[col] = 'auto'
-
-        reduce = 'True'
-        auto_reduce = 'True'
-        num_components_to_keep = 3
-        processed_data = autocleanobj.Handling_calls(fill_na_dict, outliers_method_input,
-                                                  imb_instruction, Norm_method,
-                                                  low_actions, encoding_dict, reduce, auto_reduce,
-                                                  num_components_to_keep)
-        # return JsonResponse({'status': 'success', ' 
+        datasetid = request.POST.get('datasetid')
+        # print("the problem type is",problemtype)
+        print(problemtype)
+        problemtype = problemtype.lower()
+        if problemtype=='timeseries':
+            trainData, testData,frequency = user_interaction(df,problemtype,response_variable,date_col='Date')
+            choosenModels=['Arima','Sarima']
+            dummy='lol'
+            Bestmodelobj=Bestmodel(ProblemType.TIME_SERIES,choosenModels,dummy,dummy,trainData,testData,frequency)
+            Bestmodelobj.splitTestData()
+            Bestmodelobj.trainModels()
+            
+        
 def getsavedmodels(request):
     if request.method == 'POST':
         pass

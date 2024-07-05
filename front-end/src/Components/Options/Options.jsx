@@ -24,6 +24,8 @@ export default function Options({ dataset }) {
   };
   // console.log("the sharefile is", ShareFile.status);
   const jsonData = ShareFile.df_copy_json;
+  const datasetid = ShareFile.datasetid;
+  console.log("datasetid", datasetid);
   const parsedJsonData = JSON.parse(jsonData);
 
   const DynamicTable = ({ rowLimit }) => {
@@ -73,6 +75,7 @@ export default function Options({ dataset }) {
     formData.append("responseVariable", modelData.responseVariable);
     formData.append("isTimeSeries", modelData.isTimeSeries);
     formData.append("problemtype", modelData.problemtype);
+    formData.append("datasetid", datasetid);
 
     try {
       const response = await fetch(

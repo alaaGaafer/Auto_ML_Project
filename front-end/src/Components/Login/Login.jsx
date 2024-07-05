@@ -6,8 +6,8 @@ import { useFormik } from "formik";
 import axios from "axios";
 import { useHistory } from "react-router-dom";
 import { useNavigate } from "react-router-dom";
-// import { useContext } from "react";
-// import { AuthContextphone } from "../../Context/Context";
+import { useContext } from "react";
+import { AuthContextPhone } from "../../Context/Contextt";
 // import { useLocation } from "react-router-dom";
 const mySchema = Yup.object({
   email: Yup.string().email("In-Valid Email").required("Email Is Required"),
@@ -19,6 +19,7 @@ const mySchema = Yup.object({
 export default function Login() {
   //   const location = useLocation();
   const navigate = useNavigate();
+  const { phone, setPhone } = useContext(AuthContextPhone);
   const onSubmitHandler = async (values) => {
     // const history = useHistory();
     try {
@@ -36,14 +37,13 @@ export default function Login() {
         let username = response.data.username;
         let dataset = response.data.datasets;
         let image = response.data.userimage;
-        let phone = response.data.phone;
-        // const { setPhone } = useContext(AuthContextphone);
-        // setPhone(phone);
+        let phonee = response.data.phone;
+        setPhone(phonee);
         const userData = {
           username: username,
           datasets: dataset,
           userimage: image,
-          phone: phone,
+          phone: phonee,
         };
         navigate("/UserProfile", { state: { userData } }); // Replace '/another-page' with the desired URL
       }
