@@ -8,6 +8,7 @@ urlpatterns = [
     # path('getsavedmodels', views.getsavedmodels, name='getsavedmodels'),
     path('predict', views.predict, name='predict'),
     path('register', views.signup, name='signup'),
+    path('handlenulls', views.handlenulls, name='handlenulls'),
 ]
 
 

@@ -11,6 +11,10 @@ export default function Options({ dataset }) {
   const [handlingMethod, setHandlingMethod] = useState("");
   const [notificationMessage, setNotificationMessage] = useState("");
   const [showNotification, setShowNotification] = useState(false);
+  // const [phone, setPhone] = useState(user ? user.phone : "");
+  const [jsonData, setJsonData] = useState(
+    ShareFile ? ShareFile.df_copy_json : ""
+  );
   const location = useLocation();
   const navigate = useNavigate();
   const modelData = location.state?.modelData;
@@ -25,10 +29,10 @@ export default function Options({ dataset }) {
     setSelectedOption(clickedOption);
   };
   // console.log("the sharefile is", ShareFile.status);
-  const jsonData = ShareFile.df_copy_json;
+  // const jsonData = ShareFile.df_copy_json;
   const datasetid = ShareFile.datasetid;
-  console.log("datasetid", datasetid);
-  const parsedJsonData = JSON.parse(jsonData);
+  // console.log("datasetid", datasetid);
+  let parsedJsonData = JSON.parse(jsonData);
 
   const DynamicTable = ({ rowLimit }) => {
     const columns = Object.keys(parsedJsonData[0]);
@@ -58,16 +62,10 @@ export default function Options({ dataset }) {
   };
 
   const handleSubmit = () => {
-    const message = `Submitted : ${selectedOption}`;
-    setNotificationMessage(message);
-    setShowNotification(true);
-
-    setTimeout(() => {
-      setShowNotification(false);
-    }, 5000);
     //  send data to server
-
-    console.log(message);
+    if (selectedOption === "Nulls") {
+      handleNulls();
+    }
   };
 
   const sendDatasetToServer = async () => {
@@ -119,6 +117,36 @@ export default function Options({ dataset }) {
     sendDatasetToServer();
 
     console.log(message);
+  };
+  const senddatatoclean = async (url, formdata) => {
+    try {
+      const response = await fetch(url, {
+        method: "POST",
+        body: formdata,
+      });
+      const result = await response.json();
+      if (result.status === "success") {
+        setJsonData(result.newdf);
+      }
+    } catch (error) {
+      console.error("Error sending dataset to server:", error);
+    }
+  };
+
+  const [imputationMethod, setImputationMethod] = useState("");
+  const handleSelectChange = (event) => {
+    setImputationMethod(event.target.value);
+  };
+  const handleNulls = () => {
+    //  send data to server
+    const url = "http://127.0.0.1:8000/retTuner/handlenulls";
+    const formData = new FormData();
+    let datasetjson = JSON.stringify(parsedJsonData);
+    formData.append("dataset", datasetjson);
+    formData.append("responseVariable", modelData.responseVariable);
+    formData.append("imputationMethod", imputationMethod);
+    formData.append("problemtype", modelData.problemtype);
+    senddatatoclean(url, formData);
   };
 
   return (
@@ -369,10 +397,12 @@ export default function Options({ dataset }) {
             >
               <p>column name </p>
               <select
+                value={imputationMethod}
                 defaultValue=""
                 className="mb-2 form-control text-capitalize"
                 name="nulls"
                 id="nulls"
+                onChange={handleSelectChange}
               >
                 <option value="" disabled hidden>
                   Imputation method

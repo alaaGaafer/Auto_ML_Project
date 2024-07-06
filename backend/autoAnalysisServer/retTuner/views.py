@@ -127,7 +127,19 @@ def notify(request):
         return JsonResponse(response_data, safe=False)
     else:
         return JsonResponse({'status': 'fail', 'message': 'Only POST method is allowed.'}, status=405)
-
+@csrf_exempt
+def handlenulls(request):
+    if request.method == 'POST':
+        uploaded_file = request.POST.get('dataset')
+        data_list = json.loads(uploaded_file)
+        df=pd.DataFrame(data_list)
+        #remove the first column
+        df = df.drop(df.columns[0], axis=1)
+        newdfjson=df.to_json(orient='records')
+        return JsonResponse({'status': 'success', 'newdf': newdfjson})
+    else:
+        return JsonResponse({'status': 'fail', 'message': 'Only POST method is allowed.'}, status=405)
+        
 @csrf_exempt
 def preprocessingAll(request):
     if request.method == 'POST':
