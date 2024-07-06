@@ -96,7 +96,7 @@ export default function Options({ dataset }) {
       if (result.status === "success") {
         const modelData = {
           accuracy: result.accuracy,
-          MSE: result.MSE,
+          MSE: result.mse,
           modelname: result.modelname,
         };
         console.log("modelData", modelData);

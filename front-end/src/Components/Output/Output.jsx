@@ -15,6 +15,7 @@ const Output = () => {
   const [isjsonreturned, setIsjsonreturned] = useState(false);
   const location = useLocation();
   const modelData = location.state?.modelData;
+  // console.log("the dataset id", datasetid);
   // const modelData = {
   //   accuracy: result.accuracy,
   //   MSE: result.MSE,
@@ -22,16 +23,17 @@ const Output = () => {
   // };
 
   const accuracy = modelData.accuracy;
-  const MSE = modelData.MSE;
+  const mse = modelData.MSE;
   const modelname = modelData.modelname;
+  // console.log("Model Data:", modelData);
   React.useEffect(() => {
     if (accuracy > 0) {
       // console.log("Accuracy is greater than 0");
       setMetrices(["Accuracy ", accuracy]);
     }
-    if (MSE > 0) {
+    if (mse > 0) {
       // console.log("MSE is greater than 0");
-      setMetrices("MSE: ", [MSE]);
+      setMetrices(["MSE: ", mse]);
     }
     setBestModel([modelname]);
   }, []);
@@ -93,7 +95,7 @@ const Output = () => {
         // setShareFile(result);
         const parsedJsonData = JSON.parse(result.df_copy_json);
 
-        console.log("Parsed JSON data:", parsedJsonData);
+        // console.log("Parsed JSON data:", parsedJsonData);
         setCsvData(parsedJsonData);
         setIsjsonreturned(true);
       }

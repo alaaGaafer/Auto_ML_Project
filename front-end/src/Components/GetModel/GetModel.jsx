@@ -3,7 +3,7 @@ import React, { useContext, useState } from "react";
 import { Link, useHistory } from "react-router-dom";
 import { useNavigate } from "react-router-dom";
 import { dataContext } from "../../Context/Context";
-import { AuthContextPhone } from "../../Context/Contextt";
+import { AuthContextUser } from "../../Context/Contextt";
 
 export default function GetModel() {
   const [dataset, setDataset] = useState(null);
@@ -13,7 +13,9 @@ export default function GetModel() {
   const [description, setDescription] = useState("");
   const [isTimeSeries, setIsTimeSeries] = useState(false);
   const { setShareFile } = useContext(dataContext);
-  const { phone, setPhone } = useContext(AuthContextPhone);
+  const { user, setUser } = useContext(AuthContextUser);
+  const [phone, setPhone] = useState(user ? user.phone : "");
+  // setPhone(userdata.phone);
   const navigate = useNavigate();
   // useContext(dataContext);
   // console.log("Phone:", phone);
@@ -96,7 +98,7 @@ export default function GetModel() {
           isTimeSeries: isTimeSeries,
           problemtype: problemtype,
         };
-        console.log("Model Data:", modelData);
+        // console.log("Model Data:", modelData);
         navigate("/option", { state: { modelData } });
       }
       // console.log("Server response:", result);

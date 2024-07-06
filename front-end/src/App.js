@@ -17,7 +17,7 @@ import Layout from "./Layout/Layout";
 import Error from "./Components/Error/Error";
 import Option from "./Components/Options/Options";
 import { DataContextprovider } from "./Context/Context";
-import { AuthContextPhoneProvider } from "./Context/Contextt";
+import { AuthContextUserProvider } from "./Context/Contextt";
 import UserProfile from "./Components/UserProfile/UserProfile";
 import Output from "./Components/Output/Output";
 
@@ -43,11 +43,11 @@ function App() {
 
   return (
     <>
-      <AuthContextPhoneProvider>
+      <AuthContextUserProvider>
         <DataContextprovider>
           <RouterProvider router={myRouter} />
         </DataContextprovider>
-      </AuthContextPhoneProvider>
+      </AuthContextUserProvider>
     </>
   );
 }

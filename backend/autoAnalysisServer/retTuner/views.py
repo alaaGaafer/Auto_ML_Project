@@ -154,8 +154,8 @@ def preprocessingAll(request):
             x_train, y_train, x_test, y_test = user_interaction(df, problemtype, response_variable, date_col=None)
             Bestmodelobj = Bestmodel(ProblemType.CLASSIFICATION, choosenModels, x_train,x_test,y_train,y_test)
         elif problemtype == 'regression':
-            x_train, y_train, x_test, y_test = user_interaction(df, problemtype, response_variable, date_col=None)
-            choosenModels = ['LinearRegression', "Lasso"]
+            x_train, y_train, x_test, y_test = user_interaction(df, problemtype, response_variable, date_col="Date")
+            choosenModels = ['LinearRegression', "Lasso",'Ridge','RF','XGboost']
             Bestmodelobj = Bestmodel(ProblemType.REGRESSION, choosenModels, x_train, x_test, y_train, y_test)
         
         Bestmodelobj.splitTestData()
@@ -165,9 +165,9 @@ def preprocessingAll(request):
         modelaccuracy = Bestmodelobj.accuracy
         Bestmodelobj.saveModel(datasetid)
 
-        print("modelname",modelname)
-        print("modelmse",modelmse)
-        print("modelaccuracy",modelaccuracy)
+        # print("modelname",modelname)
+        # print("modelmse",modelmse)
+        # print("modelaccuracy",modelaccuracy)
         dataset = datasetsData.objects.get(datasetID=datasetid)
         print(modelmse)
         print(modelaccuracy)
@@ -179,6 +179,7 @@ def preprocessingAll(request):
         dataset.modelmse = modelmse
         dataset.modelaccuracy = modelaccuracy
         dataset.save()
+        # print("the model name is",modelname)
         return JsonResponse({'status': 'success', 'accuracy': modelaccuracy, 'mse': modelmse, 'modelname': modelname})
     else:
         return JsonResponse({'status': 'fail', 'message': 'Only POST method is allowed.'}, status=405)

@@ -216,7 +216,7 @@ class Models:
     def regression(self, configDict, start_time):
         model = configDict['Models']
         regressor = None
-        if model == 'LR':
+        if model == 'LinearRegression':
             regressor = LinearRegression()
         elif model == 'Lasso':
             regressor = Lasso(alpha=configDict['alphalas'])

@@ -296,7 +296,7 @@ if __name__ == "__main__":
     # print(f"Mean Squared Error (MSE): {mse:.2f}")
     # print(f"Mean Absolute Percentage Error (MAPE): {mape:.2f}%")
 
-    choosenModels = ['LinearRegression', "Lasso"]
+    choosenModels = ['LinearRegression', "Lasso",'RF']
     Bestmodelobj = Bestmodel(ProblemType.REGRESSION, choosenModels, x_train, x_test, y_train, y_test)
     Bestmodelobj.splitTestData()
     # Bestmodelobj.Getincumbent()

@@ -1,15 +1,15 @@
 import React, { createContext, useState } from "react";
 
 // Create the context
-export const AuthContextPhone = createContext("");
+export const AuthContextUser = createContext("");
 
 // Context provider component
-export function AuthContextPhoneProvider({ children }) {
-  const [phone, setPhone] = useState("");
+export function AuthContextUserProvider({ children }) {
+  const [user, setUser] = useState("");
 
   return (
-    <AuthContextPhone.Provider value={{ phone, setPhone }}>
+    <AuthContextUser.Provider value={{ user, setUser }}>
       {children}
-    </AuthContextPhone.Provider>
+    </AuthContextUser.Provider>
   );
 }

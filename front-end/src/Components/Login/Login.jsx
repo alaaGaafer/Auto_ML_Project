@@ -7,7 +7,7 @@ import axios from "axios";
 import { useHistory } from "react-router-dom";
 import { useNavigate } from "react-router-dom";
 import { useContext } from "react";
-import { AuthContextPhone } from "../../Context/Contextt";
+import { AuthContextUser } from "../../Context/Contextt";
 // import { useLocation } from "react-router-dom";
 const mySchema = Yup.object({
   email: Yup.string().email("In-Valid Email").required("Email Is Required"),
@@ -19,7 +19,7 @@ const mySchema = Yup.object({
 export default function Login() {
   //   const location = useLocation();
   const navigate = useNavigate();
-  const { phone, setPhone } = useContext(AuthContextPhone);
+  const { user, setUser } = useContext(AuthContextUser);
   const onSubmitHandler = async (values) => {
     // const history = useHistory();
     try {
@@ -38,14 +38,13 @@ export default function Login() {
         let dataset = response.data.datasets;
         let image = response.data.userimage;
         let phonee = response.data.phone;
-        setPhone(phonee);
-        const userData = {
+        setUser({
           username: username,
           datasets: dataset,
           userimage: image,
           phone: phonee,
-        };
-        navigate("/UserProfile", { state: { userData } }); // Replace '/another-page' with the desired URL
+        });
+        navigate("/UserProfile"); // Replace '/another-page' with the desired URL
       }
     } catch (error) {
       if (error.response) {
