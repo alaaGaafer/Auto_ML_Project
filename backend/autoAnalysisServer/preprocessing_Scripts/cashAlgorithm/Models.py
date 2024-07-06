@@ -4,6 +4,7 @@ from statsmodels.tsa.arima.model import ARIMA
 from statsmodels.tsa.statespace.sarimax import SARIMAX
 from statsmodels.tsa.stattools import adfuller
 import warnings
+
 # from prophet import Prophet
 # Suppress warnings
 warnings.filterwarnings("ignore")
@@ -17,9 +18,6 @@ class ARIMAModel:
     def Arimasmac(train, test, p, d, q, freq='D'):
         
         train = train.asfreq(freq)
-        test = test.asfreq(freq)
-        
-
 
         model_fit = ARIMA(train['y'], order=(p, d, q)).fit()
         forecast_values = model_fit.forecast(steps=len(test))
@@ -27,7 +25,9 @@ class ARIMAModel:
         # print("the test values: ",test['y'])
 
         # print("the forcast abs minus the test: ",np.abs((forecast_values - test['y'])))
-        print("the meanloss: ",np.mean(np.abs((forecast_values - test['y']) / test['y']) * 100))
+        # print("test",test)
+        # print("forecast_values",forecast_values)
+        # print("the meanloss: ",np.mean(np.abs((forecast_values - test['y']) / test['y']) * 100))
         return np.mean(np.abs((forecast_values - test['y']) / test['y'])) * 100
 
     def fit(self, train, p, d, q, freq='D'):
@@ -47,10 +47,12 @@ class SARIMAModel:
     @staticmethod
     def Sarimasmac(train, test, p, q, d, P, Q, D, s, freq='D'):
         train = train.asfreq(freq)
-        test = test.asfreq(freq)
         model = SARIMAX(train, order=(p, q, d), seasonal_order=(P, Q, D, s), freq=freq)
         model_fit = model.fit(disp=False)  # Suppress the fitting output
         forecast_values = model_fit.forecast(steps=len(test))
+        # print("test",test)
+        # print("forecast_values",forecast_values)
+        # print("the meanloss: ",np.mean(np.abs((forecast_values - test['y']) / test['y']) * 100))
         return np.mean(np.abs((forecast_values - test['y']) / test['y'])) * 100
     # @staticmethod
     def fit_with_tests(self, train_data, p, q, d, P, Q, D, s, freq='D'):

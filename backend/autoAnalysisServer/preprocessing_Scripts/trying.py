@@ -1,44 +1,46 @@
 from .similaritySearch.functions import *
 from .bestmodel import *
-from .cashAlgorithm.smacClass import ProblemType
+from .cashAlgorithm.Models import *
 import pandas as pd
 
+
 def prediction_data(self, pred_df, fill_na_dict, outliers_methods_input, Norm_method, lowvariance_actions,
-                        encoding_dict, Bestmodelobj, num_components_to_keep=None, pca_model=None):
-        if self.date_col:
-            pred_df[self.date_col] = pd.to_datetime(pred_df[self.date_col])
+                    encoding_dict, Bestmodelobj, num_components_to_keep=None, pca_model=None):
+    if self.date_col:
+        pred_df[self.date_col] = pd.to_datetime(pred_df[self.date_col])
 
-        if self.problem == "timeseries" and self.date_col:
-            pred_df.rename(columns={self.date_col: 'ds'}, inplace=True)
-            self.date_col = 'ds'
+    if self.problem == "timeseries" and self.date_col:
+        pred_df.rename(columns={self.date_col: 'ds'}, inplace=True)
+        self.date_col = 'ds'
 
-        pred_df, carednality_messages = RemoveIDColumn.remove_high_cardinality_columns(pred_df)
-        pred_df, deletion_messages = MissingValues().del_high_null_cols(pred_df)
+    pred_df, carednality_messages = RemoveIDColumn.remove_high_cardinality_columns(pred_df)
+    pred_df, deletion_messages = MissingValues().del_high_null_cols(pred_df)
 
-        pred_fill_na_dict = {}
-        null_info = pred_df.isnull().sum()
-        pred_nulls_columns = null_info[null_info > 0].index
-        for col in pred_nulls_columns:
-            if col in fill_na_dict:
-                pred_fill_na_dict[col] = fill_na_dict[col]
-            else:
-                pred_fill_na_dict[col] = "auto"
+    pred_fill_na_dict = {}
+    null_info = pred_df.isnull().sum()
+    pred_nulls_columns = null_info[null_info > 0].index
+    for col in pred_nulls_columns:
+        if col in fill_na_dict:
+            pred_fill_na_dict[col] = fill_na_dict[col]
+        else:
+            pred_fill_na_dict[col] = "auto"
 
-        pred_df = self._process_data(pred_df, pred_fill_na_dict, outliers_methods_input, Norm_method)
+    # pred_df = self._process_data(pred_df, pred_fill_na_dict, outliers_methods_input, Norm_method)
 
-        pred_df = HandlingColinearity().handle_low_variance(pred_df, lowvariance_actions)
-        pred_df, handling_info = HandlingColinearity().handling_colinearity(pred_df)
+    pred_df = HandlingColinearity().handle_low_variance(pred_df, lowvariance_actions)
+    pred_df, handling_info = HandlingColinearity().handling_colinearity(pred_df)
 
-        pred_df = EncodeCategorical().Encode(pred_df, encoding_dict)
+    pred_df = EncodeCategorical().Encode(pred_df, encoding_dict)
 
-        if pca_model:
-            numerical_columns = pred_df.select_dtypes(include=[np.number]).columns
-            pred_df = HandlingReduction().feature_reduction(pred_df[numerical_columns],
-                                                            num_components_to_keep, pca_model)
+    if pca_model:
+        numerical_columns = pred_df.select_dtypes(include=[np.number]).columns
+        pred_df = HandlingReduction().feature_reduction(pred_df[numerical_columns],
+                                                        num_components_to_keep, pca_model)
+
+    y_pred = Bestmodelobj.basePredictModel(pred_df)
+    return y_pred
 
 
-        y_pred = Bestmodelobj.basePredictModel(pred_df)
-        return y_pred
 def calculate_date_frequency(series):
     """
     Calculate the most common frequency (interval) of a datetime series.
@@ -50,6 +52,9 @@ def calculate_date_frequency(series):
     str: A string representing the most common frequency (e.g., 'D' for days, 'H' for hours).
     """
     # Drop NaN values to avoid errors in calculations
+    if isinstance(series, pd.DatetimeIndex):
+        series = pd.Series(series)
+
     series = series.dropna()
 
     # Calculate the differences between consecutive dates
@@ -88,6 +93,7 @@ def Detections_(df, y_column, problem, date_col=None):
 
     if problem == "timeseries":
         df.rename(columns={date_col: 'ds', y_column: 'y'}, inplace=True)
+        date_col = 'ds'
         y_column = 'y'
         df['y'] = df['y'].str.replace('[^0-9\.]', '', regex=True)
         df['y'] = pd.to_numeric(df['y'], errors='coerce')
@@ -97,9 +103,19 @@ def Detections_(df, y_column, problem, date_col=None):
     df = MissingValues().del_high_null_cols(df)
     categorical_columns = df.select_dtypes(include=['object']).columns.tolist()
 
+    if problem == "timeseries":
+        frequency = calculate_date_frequency(df[date_col])
+        df.set_index('ds', inplace=True)
+        df = df.sort_index()
+        date_range = pd.date_range(start=df.index.min(), end=df.index.max(), freq=frequency)
+        df = df.reindex(date_range)
+
     nulls_columns = MissingValues().detect_nulls(df)
     cols_with_outliers = Outliers().detect_outliers(df)
-    df = Duplicates().handle_dub(df)
+    if problem !="timeseries":
+        df = Duplicates().handle_dub(df)
+    else:
+        df = df.loc[~df.index.duplicated(keep='first')]
     imbalance_detected = None
     if problem == "classification":
         imbalance_detected = HandlingImbalanceClasses().detect_class_imbalance(df, y_column)
@@ -115,7 +131,7 @@ def _process_data(df: pd.DataFrame, fill_na_dict: dict, outliers_methods_input: 
     df = MissingValues().handle_nan(df, fill_na_dict)
     cols_with_outliers = Outliers().detect_outliers(df)
     df = Outliers().handle_outliers(df, cols_with_outliers, outliers_methods_input)
-    df = DataNormalization().normalize_data(df, Norm_method)
+    # df = DataNormalization().normalize_data(df, Norm_method)
 
     return df
 
@@ -125,9 +141,7 @@ def Cleaning(df, problem, y_column, fill_na_dict, outliers_methods_input, imb_in
     if problem == "timeseries":
         date_col = 'ds'
         y_column = 'y'
-        frequency = calculate_date_frequency(df[date_col])
-        df.set_index('ds', inplace=True)
-        df = df.sort_index()
+        frequency = calculate_date_frequency(df.index)
         split_ratio = 0.8
         split_index = int(len(df) * split_ratio)
         train_data = df[:split_index]
@@ -237,29 +251,51 @@ def user_interaction(df, problem, y_column, date_col=None):
 
 
 if __name__ == "__main__":
-    df1 =pd.read_csv(r"daily-minimum-temperatures-in-me.csv")
+    df1 = pd.read_csv(r"daily-minimum-temperatures-in-me.csv")
     problemtype1 = "timeseries"
-    train_data, test_data,frequency = user_interaction(df1, problemtype1, "Daily minimum temperatures", date_col="Date")
-    choosenModels=["Arima",'Sarima']
-    traindatax='lol'
-    test_datax='loll'
-    Bestmodelobj = Bestmodel(ProblemType.TIME_SERIES,choosenModels,traindatax,traindatax,train_data,test_data,frequency)
+    train_data, test_data, frequency = user_interaction(df1, problemtype1, "Daily minimum temperatures",
+                                                        date_col="Date")
+    choosenModels = ["Arima", 'Sarima']
+    traindatax = 'lol'
+    test_datax = 'loll'
+    # print(ARIMAModel().Arimasmac(train_data, test_data,2,1,2, freq='D'))
+    # print(SARIMAModel().Sarimasmac(train_data, test_data,1,1,1,1,1,1,7, freq='D'))
+    Bestmodelobj = Bestmodel(ProblemType.TIME_SERIES, choosenModels, traindatax, traindatax, train_data, test_data,
+                             frequency)
     Bestmodelobj.splitTestData()
     # Bestmodelobj.Getincumbent()
     Bestmodelobj.TrainModel()
+
+
 
     df2 = pd.read_csv(r"train.csv")
     problemtype2 = "classification"
     choosenModels = ["KNN", "LR", "RF"]
     x_train, y_train, x_test, y_test = user_interaction(df2, problemtype2, "Survived", date_col=None)
-    Bestmodelobj = Bestmodel(ProblemType.CLASSIFICATION, choosenModels, x_train,x_test,y_train,y_test)
+    Bestmodelobj = Bestmodel(ProblemType.CLASSIFICATION, choosenModels, x_train, x_test, y_train, y_test)
     Bestmodelobj.splitTestData()
     # Bestmodelobj.Getincumbent()
     Bestmodelobj.TrainModel()
 
+
+
     df3 = pd.read_csv(r"pulsedata.csv")
     problemtype3 = "regression"
     x_train, y_train, x_test, y_test = user_interaction(df3, problemtype3, "Calories", date_col="Date")
+    model = LinearRegression()
+    model.fit(x_train, y_train)
+
+    # # Make predictions
+    # y_pred = model.predict(x_test)
+    #
+    # # Calculate evaluation metrics
+    # mse = mean_squared_error(y_test, y_pred)
+    # mape = np.mean(np.abs((y_test - y_pred) / y_test)) * 100
+    #
+    # # Print the results
+    # print(f"Mean Squared Error (MSE): {mse:.2f}")
+    # print(f"Mean Absolute Percentage Error (MAPE): {mape:.2f}%")
+
     choosenModels = ['LinearRegression', "Lasso"]
     Bestmodelobj = Bestmodel(ProblemType.REGRESSION, choosenModels, x_train, x_test, y_train, y_test)
     Bestmodelobj.splitTestData()
