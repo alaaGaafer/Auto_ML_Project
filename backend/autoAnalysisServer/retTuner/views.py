@@ -9,28 +9,54 @@ from datetime import date
 from preprocessing_Scripts.trying import calculate_date_frequency,Detections_,_process_data,Cleaning,user_interaction
 from preprocessing_Scripts.bestmodel import Bestmodel
 from preprocessing_Scripts.cashAlgorithm.smacClass import ProblemType
+import PIL
+from PIL import Image
+from io import BytesIO
 
 # Create your views here.
 def getPhoto(phone):
-    imagepath = 'preprocessing_Scripts/media/' + phone + '.jpeg'
-    image=open(imagepath, 'rb')
+    try:
+        imagepath = 'preprocessing_Scripts/media/' + phone + '.jpeg'
+        image=open(imagepath, 'rb')
+        return image
+    except:
+        #jpg
+        imagepath = 'preprocessing_Scripts/media/' + phone + '.jpg'
+        image=open(imagepath, 'rb')
     return image
+def savephoto(phone,photo):
+    #check extension
+    image = Image.open(photo)
+    if photo.name.endswith('.jpeg'):
+        image.save('preprocessing_Scripts/media/' + phone + '.jpeg')
+    elif photo.name.endswith('.jpg'):
+        image.save('preprocessing_Scripts/media/' + phone + '.jpg')
+
+
 
 @csrf_exempt
 def signup(request):
     if request.method == 'POST':
-        data = json.loads(request.body.decode('utf-8'))
-        name = data.get('name')
-        email = data.get('email')
-        password = data.get('password')
-        phone_number = data.get('phone_number')
+        # data = json.loads(request.body.decode('utf-8'))
+        name = request.POST.get('name')
+        email = request.POST.get('email')
+        password = request.POST.get('cpass')
+        phone_number = request.POST.get('phone')
+        print(name)
+
+        try:
+            photo=request.FILES['photoupload']
+            savephoto(phone_number,photo)
+            
+        except:
+            print('no photo')
 
         # Check if the email already exists in the database
         if usersData.objects.filter(email=email).exists():
             return JsonResponse({'status': 'failure', 'message': 'Email already exists'})
 
         # Create a new user
-        user = usersData.objects.create(name=name, email=email, password=password, phone_number=phone_number)
+        user = usersData.objects.create(name=name, email=email, password=password, phone=phone_number)
         user.save()
         return JsonResponse({'status': 'success', 'message': 'User successfully added to the database'})
 
@@ -128,7 +154,7 @@ def preprocessingAll(request):
             x_train, y_train, x_test, y_test = user_interaction(df, problemtype, response_variable, date_col=None)
             Bestmodelobj = Bestmodel(ProblemType.CLASSIFICATION, choosenModels, x_train,x_test,y_train,y_test)
         elif problemtype == 'regression':
-            x_train, y_train, x_test, y_test = user_interaction(df, problemtype, response_variable, date_col="Date")
+            x_train, y_train, x_test, y_test = user_interaction(df, problemtype, response_variable, date_col=None)
             choosenModels = ['LinearRegression', "Lasso"]
             Bestmodelobj = Bestmodel(ProblemType.REGRESSION, choosenModels, x_train, x_test, y_train, y_test)
         

@@ -1,11 +1,20 @@
-import React, { useState } from "react";
+import React, { useState, useContext } from "react";
 import { Link, NavLink } from "react-router-dom";
 import logo from "../../logo.png";
+import { AuthContextPhone } from "../../Context/Contextt";
+import { useNavigate } from "react-router-dom";
 
 export default function Navbar() {
   const [isLoggedIn, setIsLoggedIn] = useState(false);
+  const { phone, setPhone } = useContext(AuthContextPhone);
+  const navigate = useNavigate();
+  // if (phone) {
+  // setIsLoggedIn(true);
+  // }
   const handleLogout = () => {
+    setPhone("");
     setIsLoggedIn(false);
+    navigate("/Login");
   };
 
   return (
@@ -39,8 +48,7 @@ export default function Navbar() {
                   Service
                 </NavLink>
               </li>
-
-              {isLoggedIn && (
+              {phone && (
                 <li className="nav-item">
                   <button className="nav-link" onClick={handleLogout}>
                     Logout
@@ -51,6 +59,11 @@ export default function Navbar() {
               <li className="nav-item">
                 <NavLink className="nav-link" to="">
                   <i className="fa-solid fa-envelope" />
+                </NavLink>
+              </li>
+              <li className="nav-item">
+                <NavLink className="nav-link" to="">
+                  <i className="fa-solid fa-share-nodes" />
                 </NavLink>
               </li>
               <li className="nav-item">
