@@ -1,6 +1,8 @@
 from django.http import JsonResponse
 from django.views.decorators.csrf import csrf_exempt
 import json
+
+from sklearn.model_selection import train_test_split
 from .models import usersData, datasetsData
 import pandas as pd
 import base64
@@ -217,8 +219,40 @@ def predict(request):
         df_copy_json = droplastcolumn.to_json(orient='records')
         response_data= {'status': 'success', 'df_copy_json': df_copy_json} 
         return JsonResponse(response_data, safe=False)
+@csrf_exempt
+def trainCurrentdata(request):
+    if request.method == 'POST':
+        uploaded_file = request.POST.get('dataset')
+        data_list = json.loads(uploaded_file)
+        df=pd.DataFrame(data_list)
+        response_variable = request.POST.get('responseVariable')
+        problemtype = request.POST.get('problemtype')
+        problemtype = problemtype.lower()
+        if problemtype=='timeseries':
+            split_ratio= 0.8
+            split_index = int(len(df)*split_ratio)
+            train_data = df[:split_index]
+            test_data = df[split_index:]
+            print("the data types are",df.dtypes)
+            # Bestmodelobj=Bestmodel(ProblemType.TIME_SERIES,choosenModels,dummy,dummy,trainData,testData,frequency)
+            Bestmodelobj = Bestmodel(ProblemType.TIME_SERIES, ['Arima', 'Sarima'], train_data, test_data, calculate_date_frequency(train_data))
+        elif problemtype =='classification':
+            #getx and y
+            x=df.drop(response_variable,axis=1)
+            y=df[response_variable]
+            x_train,x_test,y_train,y_test = train_test_split(x,y,test_size=0.2)
+            print("the data types are",df.dtypes)
+        elif problemtype == 'regression':
+            x=df.drop(response_variable,axis=1)
+            y=df[response_variable]
+            x_train,x_test,y_train,y_test = train_test_split(x,y,test_size=0.2)
+            print("the data types are",df.dtypes)
+            
+        
+        print("the data types are",df.dtypes)
 
 
+        
         
 def getsavedmodels(request):
     if request.method == 'POST':

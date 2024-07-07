@@ -18,11 +18,6 @@ export default function Options({ dataset }) {
   const location = useLocation();
   const navigate = useNavigate();
   const modelData = location.state?.modelData;
-  // console.log("modelData", modelData);
-
-  // console.log("istimeseries", modelData.istimeseries);
-  // console.log("problemtype", modelData.problemtype);
-  // console.log("responseVariable", modelData.responseVariable);
 
   const handleOptions = (event) => {
     const clickedOption = event.target.innerHTML;
@@ -33,6 +28,7 @@ export default function Options({ dataset }) {
   const datasetid = ShareFile.datasetid;
   // console.log("datasetid", datasetid);
   let parsedJsonData = JSON.parse(jsonData);
+  // console.log("parsedjsondata", parsedJsonData);
 
   const DynamicTable = ({ rowLimit }) => {
     const columns = Object.keys(parsedJsonData[0]);
@@ -137,6 +133,44 @@ export default function Options({ dataset }) {
   const handleSelectChange = (event) => {
     setImputationMethod(event.target.value);
   };
+  const convertToCSV = (data) => {
+    console.log("data", data);
+    const escapeCSV = (value) => {
+      if (typeof value === "string" && value.includes(",")) {
+        return `"${value.replace(/"/g, '""')}"`;
+      }
+      return value;
+    };
+    const headers = Object.keys(data[0]).join(",") + "\n";
+    const rows = data
+      .map((row) => Object.values(row).map(escapeCSV).join(","))
+      .join("\n");
+    console.log(headers + rows);
+    return headers + rows;
+  };
+  const saveCurrentData = () => {
+    const csvData = convertToCSV(parsedJsonData);
+    const blob = new Blob([csvData], { type: "text/csv" });
+    const link = document.createElement("a");
+    link.download = "cleaned_data.csv";
+
+    link.href = window.URL.createObjectURL(blob);
+    document.body.appendChild(link);
+    link.click();
+    document.body.removeChild(link);
+  };
+  const handleTrainCurrentData = () => {
+    const url = "http://127.0.0.1:8000/retTuner/trainCurrentdata";
+    const formData = new FormData();
+    let datasetjson = JSON.stringify(parsedJsonData);
+    formData.append("dataset", datasetjson);
+    formData.append("responseVariable", modelData.responseVariable);
+    // formData.append("isTimeSeries", modelData.isTimeSeries);
+    formData.append("problemtype", modelData.problemtype);
+    senddatatoclean(url, formData);
+    //  send data to server
+  };
+
   const handleNulls = () => {
     //  send data to server
     const url = "http://127.0.0.1:8000/retTuner/handlenulls";
@@ -438,6 +472,28 @@ export default function Options({ dataset }) {
                 <option>Under sampling</option>
               </select>
               <button
+                onClick={handleTrainCurrentData}
+                className="btn btn-danger mt-3 mb-1 d-block m-auto shadow-sm"
+                style={{
+                  backgroundColor: "white",
+                  color: "black",
+                  fontSize: "20px",
+                }}
+              >
+                trainCurrentData
+              </button>
+              <button
+                onClick={saveCurrentData}
+                className="btn btn-danger mt-3 mb-1 d-block m-auto shadow-sm"
+                style={{
+                  backgroundColor: "white",
+                  color: "black",
+                  fontSize: "20px",
+                }}
+              >
+                saveCurrentData
+              </button>
+              <button
                 onClick={handleFinalSubmit}
                 className="btn btn-danger mt-3 mb-1 d-block m-auto shadow-sm"
                 style={{
@@ -446,7 +502,7 @@ export default function Options({ dataset }) {
                   fontSize: "20px",
                 }}
               >
-                Final Submit
+                autotrain
               </button>
             </div>
             {selectedOption &&
