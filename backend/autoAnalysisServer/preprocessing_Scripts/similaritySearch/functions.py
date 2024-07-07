@@ -147,7 +147,7 @@ class MissingValues:
 
         return df
 
-    def handle_nan(self, df, fillNA_dict):
+    def handle_nan(self, df, method='auto'):
         """
         Handles missing values in the data.
 
@@ -158,10 +158,14 @@ class MissingValues:
         Returns:
             - df: pandas DataFrame with missing values handled
         """
-        for col, method in fillNA_dict.items():
+        nulls_collumns = self.detect_nulls(df)
+        for col in nulls_collumns:
             if not df[col].isnull().any():
                 continue
-
+            if is_datetime64_any_dtype(df[col]):
+                df[col], status = self.fill_datetime_na(df[col])
+                if status == "failed":
+                    df[col].dropna(inplace=True)
             if method == 'auto':
                 if is_float_dtype(df[col]):
                     df[col].fillna(df[col].median(), inplace=True)
@@ -170,10 +174,6 @@ class MissingValues:
                     if not mode_values.empty:
                         chosen_mode = mode_values.iloc[0].split()[0]
                         df[col].fillna(chosen_mode, inplace=True)
-                # elif is_datetime64_any_dtype(df[col]):
-                #     df[col], status = self.fill_datetime_na(df[col])
-                #     if status == "failed":
-                #         df[col].dropna(inplace=True)
             elif method == 'median':
                 if is_float_dtype(df[col]) or is_integer_dtype(df[col]):
                     df[col].fillna(df[col].median(), inplace=True)
@@ -567,7 +567,7 @@ class HandlingColinearity:
 
         return low_variance_columns, low_variance_info
 
-    def handle_low_variance(self, df, actions):
+    def handle_low_variance(self, df,low_columns, action='auto'):
         """
         Handle low variance in numeric columns based on user actions.
 
@@ -578,7 +578,7 @@ class HandlingColinearity:
         Returns:
             - df: pandas DataFrame with low variance handled
         """
-        for column, action in actions.items():
+        for column in low_columns:
             if action == 'remove' or action == 'auto' and column in df.columns:
                 df.drop(columns=column, inplace=True)
         return df

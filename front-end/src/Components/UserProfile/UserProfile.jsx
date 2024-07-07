@@ -10,10 +10,11 @@ export default function UserProfile() {
   const { ShareFile, setShareFile } = useContext(dataContext);
   const { user, setUser } = useContext(AuthContextUser);
   const [phone, setPhone] = useState(user ? user.phone : "");
-  const userData = user;
+  let userData = user;
   let username = userData.username;
-  const parsedJsonData = JSON.parse(userData.datasets);
+  let parsedJsonData = JSON.parse(userData.datasets);
   const navigate = useNavigate();
+  // console.log("the user data: ", userData);
   const updateDatasetId = (newDatasetId) => {
     setShareFile((prevState) => ({
       ...prevState,
@@ -42,12 +43,13 @@ export default function UserProfile() {
   };
 
   const handleClick = (post) => {
-    // console.log("Post ID:", postid);
+    console.log("Post :", post);
     const modelData = {
       accuracy: post.accuracy,
       MSE: post.MSE,
       modelname: post.modelname,
     };
+    console.log("Model Data:", modelData);
     updateDatasetId(post.id);
     navigate("/output", { state: { modelData } });
     // sendDatasetToServer(postid);

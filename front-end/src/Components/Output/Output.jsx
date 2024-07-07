@@ -80,6 +80,7 @@ const Output = () => {
     const formData = new FormData();
     formData.append("dataset", dataset);
     formData.append("datasetid", datasetid);
+    // formData.append(prob)
     try {
       const response = await fetch("http://127.0.0.1:8000/retTuner/predict", {
         method: "POST",

@@ -10,6 +10,7 @@ urlpatterns = [
     path('predict', views.predict, name='predict'),
     path('register', views.signup, name='signup'),
     path('handlenulls', views.handlenulls, name='handlenulls'),
+    path('varianceThreshold', views.handlelowvar, name='handlelowvar'),
 ]
 
 

@@ -4,11 +4,13 @@ import { dataContext } from "../../Context/Context";
 import axios from "axios";
 import { useLocation } from "react-router-dom";
 import { useNavigate } from "react-router-dom";
+import { AuthContextUser } from "../../Context/Contextt";
 
 export default function Options({ dataset }) {
   const { ShareFile } = useContext(dataContext);
   const [selectedOption, setSelectedOption] = useState("");
   const [handlingMethod, setHandlingMethod] = useState("");
+  const { user, setUser } = useContext(AuthContextUser);
   const [notificationMessage, setNotificationMessage] = useState("");
   const [showNotification, setShowNotification] = useState(false);
   // const [phone, setPhone] = useState(user ? user.phone : "");
@@ -25,7 +27,7 @@ export default function Options({ dataset }) {
   };
   // console.log("the sharefile is", ShareFile.status);
   // const jsonData = ShareFile.df_copy_json;
-  const datasetid = ShareFile.datasetid;
+  let datasetid = ShareFile.datasetid;
   // console.log("datasetid", datasetid);
   let parsedJsonData = JSON.parse(jsonData);
   // console.log("parsedjsondata", parsedJsonData);
@@ -62,11 +64,15 @@ export default function Options({ dataset }) {
     if (selectedOption === "Nulls") {
       handleNulls();
     }
+    if (selectedOption === "Low variance") {
+      handleLowVar();
+    }
   };
 
-  const sendDatasetToServer = async () => {
+  const sendDatasetToServer = async (url) => {
     const formData = new FormData();
     let datasetjson = JSON.stringify(parsedJsonData);
+
     formData.append("dataset", datasetjson);
     formData.append("responseVariable", modelData.responseVariable);
     formData.append("isTimeSeries", modelData.isTimeSeries);
@@ -74,13 +80,10 @@ export default function Options({ dataset }) {
     formData.append("datasetid", datasetid);
 
     try {
-      const response = await fetch(
-        "http://127.0.0.1:8000/retTuner/preprocessingAll",
-        {
-          method: "POST",
-          body: formData,
-        }
-      );
+      const response = await fetch(url, {
+        method: "POST",
+        body: formData,
+      });
 
       if (!response.ok) {
         throw new Error("Network response was not ok");
@@ -93,6 +96,13 @@ export default function Options({ dataset }) {
           MSE: result.mse,
           modelname: result.modelname,
         };
+
+        setUser((prevState) => ({
+          ...prevState,
+          datasets: result.datasets,
+        }));
+        console.log(user);
+
         console.log("modelData", modelData);
         navigate("/Output", { state: { modelData } });
         console.log("Server response:", result);
@@ -105,12 +115,12 @@ export default function Options({ dataset }) {
     const message = `Final Submit for: ${selectedOption}`;
     setNotificationMessage(message);
     setShowNotification(true);
-
+    const url = "http://127.0.0.1:8000/retTuner/preprocessingAll";
     setTimeout(() => {
       setShowNotification(false);
     }, 5000);
     //  send data to server
-    sendDatasetToServer();
+    sendDatasetToServer(url);
 
     console.log(message);
   };
@@ -161,13 +171,8 @@ export default function Options({ dataset }) {
   };
   const handleTrainCurrentData = () => {
     const url = "http://127.0.0.1:8000/retTuner/trainCurrentdata";
-    const formData = new FormData();
-    let datasetjson = JSON.stringify(parsedJsonData);
-    formData.append("dataset", datasetjson);
-    formData.append("responseVariable", modelData.responseVariable);
-    // formData.append("isTimeSeries", modelData.isTimeSeries);
-    formData.append("problemtype", modelData.problemtype);
-    senddatatoclean(url, formData);
+
+    sendDatasetToServer(url);
     //  send data to server
   };
 
@@ -180,9 +185,21 @@ export default function Options({ dataset }) {
     formData.append("responseVariable", modelData.responseVariable);
     formData.append("imputationMethod", imputationMethod);
     formData.append("problemtype", modelData.problemtype);
+
     senddatatoclean(url, formData);
   };
+  const handleLowVar = () => {
+    const url = "http://127.0.0.1:8000/retTuner/varianceThreshold";
+    const formData = new FormData();
+    let datasetjson = JSON.stringify(parsedJsonData);
+    formData.append("dataset", datasetjson);
+    formData.append("responseVariable", modelData.responseVariable);
+    formData.append("problemtype", modelData.problemtype);
 
+    formData.append("imputationMethod", imputationMethod);
+
+    senddatatoclean(url, formData);
+  };
   return (
     <div id="option" className="py-2 options-container">
       <div className="container p-3 my-4 rounded shadow bg-white">
@@ -231,7 +248,7 @@ export default function Options({ dataset }) {
               Handling imbalance class
             </button>
           </div>
-          <div className="col-md-6 h-100">
+          <div className="col-md-6 h-100" style={{ overflowX: "scroll" }}>
             <div>
               <DynamicTable rowLimit={10} />
             </div>
@@ -314,16 +331,18 @@ export default function Options({ dataset }) {
             >
               <p>column name </p>
               <select
+                value={imputationMethod}
                 defaultValue=""
                 className="mb-2 form-control text-capitalize"
                 name="low variance"
                 id="low variance"
+                onChange={handleSelectChange}
               >
                 <option value="" disabled hidden>
                   low variance
                 </option>
-                <option value="">remove</option>
-                <option value="">keep</option>
+                <option value="remove">remove</option>
+                <option value="keep">keep</option>
               </select>
             </div>
 
@@ -441,11 +460,11 @@ export default function Options({ dataset }) {
                 <option value="" disabled hidden>
                   Imputation method
                 </option>
-                <option value="">Auto</option>
-                <option value="">mode</option>
-                <option value="">mean</option>
-                <option value="">median</option>
-                <option value="">Delete</option>
+                <option value="Auto">Auto</option>
+                <option value="Mode">mode</option>
+                <option value="Mean">mean</option>
+                <option value="mMdian">median</option>
+                <option value="Delete">Delete</option>
               </select>
             </div>
 

@@ -101,14 +101,18 @@ class Bestmodel:
     def PredictModel(self,xtopred):
         if self.problemtype == ProblemType.CLASSIFICATION:
             y_pred = self.modelobj.predict(xtopred)
+            y_pred=pd.DataFrame(y_pred,columns=['y_pred'])
             Concatedyandx = pd.concat([xtopred, y_pred], axis=1)
             return Concatedyandx
         elif self.problemtype == ProblemType.REGRESSION:
             y_pred = self.modelobj.predict(xtopred)
+            #change the y_pred to a dataframe
+            y_pred=pd.DataFrame(y_pred,columns=['y_pred'])
             concatedyandx=pd.concat([xtopred,y_pred],axis=1)
             return Concatedyandx
         elif self.problemtype == ProblemType.TIME_SERIES:
             y_pred=self.modelobj.predict(steps=len(xtopred))
+            y_pred=pd.DataFrame(y_pred,columns=['y_pred'])
             concatedyandx=pd.concat([xtopred,y_pred],axis=1)
             return concatedyandx
     def saveModel(self,dsid):

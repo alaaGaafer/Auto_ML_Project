@@ -228,11 +228,11 @@ body {
 }
 
 #options.custom-table {
-  width: auto;
+  width: 50%;
+  overflow-x: scroll;
   border-collapse: collapse;
   margin: 0;
   font-size: 1em;
-  min-width: auto;
   box-shadow: 0 0 20px rgba(0, 0, 0, 0.15);
 }
 
@@ -245,7 +245,7 @@ body {
 
 #options.custom-table th,
 .custom-table td {
-  padding: 1px 2px;
+  padding: auto;
 }
 
 #options.custom-table tbody tr {
