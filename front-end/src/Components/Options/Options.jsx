@@ -67,6 +67,12 @@ export default function Options({ dataset }) {
     if (selectedOption === "Low variance") {
       handleLowVar();
     }
+    if (selectedOption === "Remove cols") {
+      handleRemoveID();
+    }
+    if (selectedOption === "Encode Categorical Columns") {
+      handleCategorical();
+    }
   };
 
   const sendDatasetToServer = async (url) => {
@@ -200,6 +206,27 @@ export default function Options({ dataset }) {
 
     senddatatoclean(url, formData);
   };
+  const handleRemoveID = () => {
+    const url = "http://127.0.0.1:8000/retTuner/removeID";
+    const formData = new FormData();
+    let datasetjson = JSON.stringify(parsedJsonData);
+    formData.append("dataset", datasetjson);
+    formData.append("responseVariable", modelData.responseVariable);
+    formData.append("problemtype", modelData.problemtype);
+    formData.append("imputationMethod", imputationMethod);
+    senddatatoclean(url, formData);
+  };
+  const handleCategorical = () => {
+    const url = "http://127.0.0.1:8000/retTuner/handleCategorical";
+    const formData = new FormData();
+    let datasetjson = JSON.stringify(parsedJsonData);
+    formData.append("dataset", datasetjson);
+    formData.append("responseVariable", modelData.responseVariable);
+    formData.append("problemtype", modelData.problemtype);
+    formData.append("imputationMethod", imputationMethod);
+    senddatatoclean(url, formData);
+  };
+  // label, onehot, auto
   return (
     <div id="option" className="py-2 options-container">
       <div className="container p-3 my-4 rounded shadow bg-white">
@@ -234,6 +261,12 @@ export default function Options({ dataset }) {
               className="btn btn-danger w-100 my-2 d-block m-auto text-capitalize"
             >
               Encode Categorical Columns
+            </button>
+            <button
+              onClick={handleOptions}
+              className="btn btn-danger w-100 my-2 d-block m-auto text-capitalize"
+            >
+              Remove cols
             </button>
             <button
               onClick={handleOptions}
@@ -356,17 +389,41 @@ export default function Options({ dataset }) {
             >
               <p>column name </p>
               <select
+                value={imputationMethod}
                 defaultValue=""
                 className="mb-2 form-control text-capitalize"
                 name="Encode Categorical Columns"
                 id="Encode Categorical Columns"
+                onChange={handleSelectChange}
               >
                 <option value="" disabled hidden>
                   Encode Categorical Columns
                 </option>
-                <option value="">auto</option>
-                <option value="">one hot encoding</option>
-                <option value="">label encoding</option>
+                <option value="auto">auto</option>
+                <option value="onehot">onehot</option>
+                <option value="label">label</option>
+              </select>
+            </div>
+            <div
+              id="Remove cols"
+              className={
+                selectedOption === "Remove cols" ? "options" : "options d-none"
+              }
+            >
+              <p>column name </p>
+              <select
+                value={imputationMethod}
+                defaultValue=""
+                className="mb-2 form-control text-capitalize"
+                name="Remove cols"
+                id="Remove cols"
+                onChange={handleSelectChange}
+              >
+                <option value="" disabled hidden>
+                  Remove cols
+                </option>
+                <option value="name">name</option>
+                <option value="id">id</option>
               </select>
             </div>
 

@@ -1,5 +1,6 @@
 from django.http import JsonResponse
 from django.views.decorators.csrf import csrf_exempt
+from django.conf import settings
 import json
 
 from sklearn.model_selection import train_test_split
@@ -11,10 +12,13 @@ from datetime import date
 from preprocessing_Scripts.trying import calculate_date_frequency,Detections_,_process_data,Cleaning,user_interaction
 from preprocessing_Scripts.bestmodel import Bestmodel
 from preprocessing_Scripts.cashAlgorithm.smacClass import ProblemType
-import PIL
+# import PIL
 from PIL import Image
 from io import BytesIO
 from preprocessing_Scripts.similaritySearch.functions import *
+import google.generativeai as genai
+import textwrap
+
 
 # Create your views here.
 def getPhoto(phone):
@@ -34,6 +38,67 @@ def savephoto(phone,photo):
         image.save('preprocessing_Scripts/media/' + phone + '.jpeg')
     elif photo.name.endswith('.jpg'):
         image.save('preprocessing_Scripts/media/' + phone + '.jpg')
+def getIDcolumn(listofcolumns):
+    print(settings.API_KEY)
+    genai.configure(api_key=settings.API_KEY)
+    id = genai.protos.Schema(
+        type=genai.protos.Type.STRING,
+    )
+    extractid = genai.protos.FunctionDeclaration(
+    name="extractID",
+    description=textwrap.dedent("""\
+        Extract Id from set of columns.
+        """),
+    parameters=genai.protos.Schema(
+        type=genai.protos.Type.OBJECT,
+        properties = {
+            'ID': id,
+        }
+    )
+    )
+    model= genai.GenerativeModel(
+    model_name='models/gemini-1.5-pro-latest'
+    ,tools = [extractid])
+
+    result = model.generate_content(f"""
+    extract the ID from this list:
+
+    {listofcolumns}
+    """,
+    # Force a function call
+    tool_config={'function_calling_config':'ANY'})
+    fc=result.candidates[0].content.parts[0].function_call
+    fc=type(fc).to_dict(fc)
+    return fc['args']['ID']
+def getnameColumns(listofcolumns):
+    genai.configure(api_key=settings.API_KEY)
+    name=genai.protos.Schema(
+        type=genai.protos.Type.STRING,
+    )
+    extractname = genai.protos.FunctionDeclaration(
+    name="extractName",
+    description=textwrap.dedent("""\
+        Extract Name from set of columns.
+        """),
+    parameters=genai.protos.Schema(
+        type=genai.protos.Type.OBJECT,
+        properties = {
+            'Name': name,
+        }
+    )
+    )
+    model= genai.GenerativeModel(
+    model_name='models/gemini-1.5-pro-latest'
+    ,tools = [extractname])
+    result = model.generate_content(f"""
+    extract the Name from this list:
+                                    {listofcolumns}
+    """,
+    # Force a function call
+    tool_config={'function_calling_config':'ANY'})
+    fc=result.candidates[0].content.parts[0].function_call
+    fc=type(fc).to_dict(fc)
+    return fc['args']['Name']
 
 
 
@@ -322,7 +387,44 @@ def handlelowvar(request):
         return JsonResponse({'status': 'success', 'newdf': newdfjson})
     else:
         return JsonResponse({'status': 'fail', 'message': 'Only POST method is allowed.'}, status=405)
+@csrf_exempt    
+def removeID(request):
+    if request.method == 'POST':
+        uploaded_file = request.POST.get('dataset')
+        imputationMethod = request.POST.get('imputationMethod')
+        if imputationMethod=='id':
+            
+            data_list = json.loads(uploaded_file)
+            df=pd.DataFrame(data_list)
+            idcolumn= getIDcolumn(df.columns)
+            df.drop(columns=idcolumn,inplace=True)
+            newdfjson=df.to_json(orient='records')
         
+            return JsonResponse({'status': 'success', 'newdf': newdfjson})
+        elif imputationMethod=='name':
+            data_list = json.loads(uploaded_file)
+            df=pd.DataFrame(data_list)
+            namecolumn= getnameColumns(df.columns)
+            df.drop(columns=namecolumn,inplace=True)
+            newdfjson=df.to_json(orient='records')
+        
+            return JsonResponse({'status': 'success', 'newdf': newdfjson})
+    else:
+        return JsonResponse({'status': 'fail', 'message': 'Only POST method is allowed.'}, status=405)
+@csrf_exempt
+def Encode(request):
+    if request.method == 'POST':
+        uploaded_file = request.POST.get('dataset')
+        EncodeMethod = request.POST.get('imputationMethod')
+        data_list = json.loads(uploaded_file)
+        df=pd.DataFrame(data_list)
+        print(df.head())
+        df=EncodeCategorical().Encode(df, EncodeMethod)
+        print(df.head())
+        newdfjson=df.to_json(orient='records')
+        return JsonResponse({'status': 'success', 'newdf': newdfjson})
+    else:
+        return JsonResponse({'status': 'fail', 'message': 'Only POST method is allowed.'}, status=405)
 def getsavedmodels(request):
     if request.method == 'POST':
         pass
