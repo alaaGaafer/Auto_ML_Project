@@ -21,6 +21,8 @@ const mySchema = Yup.object({
 
 export default function Register() {
   const [photo, setPhoto] = useState(null);
+  const [showNotification, setShowNotification] = useState(false);
+  const [notificationMessage, setNotificationMessage] = useState("");
   const register = useFormik({
     initialValues: {
       name: "",
@@ -53,13 +55,40 @@ export default function Register() {
             },
           }
         );
-        console.log(response.data); // Handle success response
+        console.log(response.data);
+        if (response.data.status === "success") {
+          // signup("User already exists");
+          signup("Registration Successful");
+          // return;
+        } else {
+          signup("Registration Failed");
+        }
       } catch (error) {
+        signup("Registration Failed");
         console.error("Registration failed:", error.response.data); // Handle error response
       }
     },
     validationSchema: mySchema,
   });
+  // make color red and font bold and big
+  const style = {
+    color: "red",
+    fontWeight: "bold",
+    fontSize: "20px",
+  };
+  const signup = (message) => {
+    // const message = `Final Submit for: ${selectedOption}`;
+    setNotificationMessage(message);
+    setShowNotification(true);
+
+    setTimeout(() => {
+      setShowNotification(false);
+    }, 5000);
+    //  send data to server
+    // sendDatasetToServer(url);
+
+    console.log(message);
+  };
   return (
     <div id="register">
       <div className="container w-75 py-3">
@@ -178,6 +207,15 @@ export default function Register() {
                 >
                   log-in
                 </Link>
+                {/* <div className="col-md-3 text-capitalize bg-danger rounded position-relative"> */}
+                {showNotification && (
+                  <div
+                    className="notification-message bold-black-text"
+                    style={style}
+                  >
+                    {notificationMessage}
+                  </div>
+                )}
               </p>
             </form>
           </div>

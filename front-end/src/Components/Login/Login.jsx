@@ -8,6 +8,7 @@ import { useHistory } from "react-router-dom";
 import { useNavigate } from "react-router-dom";
 import { useContext } from "react";
 import { AuthContextUser } from "../../Context/Contextt";
+import { useState } from "react";
 // import { useLocation } from "react-router-dom";
 const mySchema = Yup.object({
   email: Yup.string().email("In-Valid Email").required("Email Is Required"),
@@ -18,6 +19,8 @@ const mySchema = Yup.object({
 
 export default function Login() {
   //   const location = useLocation();
+  const [showNotification, setShowNotification] = useState(false);
+  const [notificationMessage, setNotificationMessage] = useState("");
   const navigate = useNavigate();
   const { user, setUser } = useContext(AuthContextUser);
   const onSubmitHandler = async (values) => {
@@ -45,8 +48,11 @@ export default function Login() {
           phone: phonee,
         });
         navigate("/UserProfile"); // Replace '/another-page' with the desired URL
+      } else {
+        signin("Invalid Email or Password");
       }
     } catch (error) {
+      signin("Invalid Email or Password");
       if (error.response) {
         console.error("Server Error:", error.response.status);
         console.error("Server Response:", error.response.data);
@@ -65,6 +71,24 @@ export default function Login() {
     onSubmit: onSubmitHandler,
     validationSchema: mySchema,
   });
+  const style = {
+    color: "red",
+    fontWeight: "bold",
+    fontSize: "20px",
+  };
+  const signin = (message) => {
+    // const message = `Final Submit for: ${selectedOption}`;
+    setNotificationMessage(message);
+    setShowNotification(true);
+
+    setTimeout(() => {
+      setShowNotification(false);
+    }, 5000);
+    //  send data to server
+    // sendDatasetToServer(url);
+
+    console.log(message);
+  };
 
   return (
     <div id="login" className="py-5">
@@ -116,6 +140,14 @@ export default function Login() {
               >
                 Log In
               </button>
+              {showNotification && (
+                <div
+                  className="notification-message bold-black-text"
+                  style={style}
+                >
+                  {notificationMessage}
+                </div>
+              )}
               <p className="text-center">
                 Don't have an account?{" "}
                 <Link

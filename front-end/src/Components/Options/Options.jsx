@@ -43,7 +43,13 @@ export default function Options({ dataset }) {
       return parsedJsonData.slice(0, rowLimit).map((item, rowIndex) => (
         <tr key={rowIndex}>
           {columns.map((key, colIndex) => (
-            <td key={colIndex}>{item[key]}</td>
+            <td key={colIndex}>
+              {item[key] === true
+                ? "True"
+                : item[key] === false
+                ? "False"
+                : item[key]}
+            </td>
           ))}
         </tr>
       ));

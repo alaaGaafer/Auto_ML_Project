@@ -304,7 +304,7 @@ def predict(request):
         concateddf=Bestmodelobj.PredictModel(df)
         print(concateddf.head())
         #change every boolean true or false to 0 or 1
-        concateddf=concateddf*1
+        # concateddf=concateddf*1
         jsondf=concateddf.to_json(orient='records')
 
         response_data= {'status': 'success', 'df_copy_json': jsondf} 
